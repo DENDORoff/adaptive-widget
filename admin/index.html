@@ -130,23 +130,23 @@
   .split { display: flex; gap: 14px; }
   .split > div { flex: 1; min-width: 0; }
   /* ============ REDESIGN OVERLAY ============ */
-  @keyframes awAurora { 0%,100% { transform: translate(-6%, -4%) scale(1); } 50% { transform: translate(6%, 4%) scale(1.12); } }
   @keyframes awFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
   @keyframes awPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
   @keyframes awSheen { 0% { transform: translateX(-130%) skewX(-18deg); } 60%,100% { transform: translateX(230%) skewX(-18deg); } }
   @keyframes awShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
   @keyframes awRipple { from { box-shadow: 0 0 0 0 rgba(99,102,241,.55); } to { box-shadow: 0 0 0 14px rgba(99,102,241,0); } }
 
-  body { position: relative; overflow-x: hidden; }
-  body::before, body::after {
-    content: ""; position: fixed; width: 640px; height: 640px; border-radius: 50%;
-    filter: blur(110px); opacity: .16; z-index: 0; pointer-events: none; animation: awAurora 18s ease-in-out infinite;
-  }
-  body::before { background: #6366f1; top: -220px; left: -140px; }
-  body::after { background: #a855f7; bottom: -260px; right: -160px; animation-delay: -9s; }
+  body { position: relative; overflow-x: hidden; background: #0d1322; }
   header, .wrap, .view, .toast { position: relative; z-index: 1; }
 
-  header { background: rgba(15,23,42,.72); backdrop-filter: blur(14px) saturate(1.3); border-bottom: 1px solid rgba(148,163,184,.14); box-shadow: 0 8px 32px rgba(2,6,23,.35); }
+  header { position: fixed; left: 0; top: 0; bottom: 0; width: 236px; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0; padding: 22px 14px 16px; background: #0f172a; border-bottom: none; border-right: 1px solid rgba(148,163,184,.14); box-shadow: 6px 0 26px rgba(2,6,23,.45); backdrop-filter: none; }
+  header h1 { margin-bottom: 6px; }
+  header nav.tabs { flex-direction: column; align-items: stretch; margin: 18px 0 0; gap: 4px; flex: 1; flex-wrap: nowrap; }
+  header nav.tabs button { text-align: left; padding: 11px 13px; }
+  header .connwrap { margin-left: 0; margin-top: auto; justify-content: flex-start; padding: 12px 6px 0; border-top: 1px solid rgba(148,163,184,.1); }
+
+  body { margin-left: 236px; }
+  .view { max-width: 1000px; margin-left: auto; margin-right: auto; width: 100%; }
   header h1 { position: relative; padding-left: 26px; letter-spacing: .3px; }
   header h1::before {
     content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
@@ -162,13 +162,13 @@
   .tabs button * { position: relative; z-index: 1; }
 
   .view.on { animation: awFadeUp .45s cubic-bezier(.22,1,.36,1) both; }
-  .card { background: rgba(30,41,59,.55); border: 1px solid rgba(148,163,184,.14); backdrop-filter: blur(8px); position: relative; overflow: hidden; transition: transform .25s, border-color .25s, box-shadow .25s; }
+  .card { background: rgba(30,41,59,.7); border: 1px solid rgba(148,163,184,.14); position: relative; overflow: hidden; transition: transform .25s, border-color .25s, box-shadow .25s; }
   .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(129,140,248,.7), transparent); opacity: 0; transition: opacity .25s; }
   .card:hover { transform: translateY(-4px); border-color: rgba(129,140,248,.45); box-shadow: 0 14px 34px rgba(2,6,23,.5), 0 0 0 1px rgba(129,140,248,.18); }
   .card:hover::before { opacity: 1; }
   .card .num { font-size: 30px; background: linear-gradient(120deg, #e0e7ff, #c7d2fe 55%, #ddd6fe); -webkit-background-clip: text; background-clip: text; color: transparent; transition: color .2s; }
 
-  .chat-card { background: rgba(30,41,59,.55); backdrop-filter: blur(6px); position: relative; overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s; }
+  .chat-card { background: rgba(30,41,59,.7); position: relative; overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s; }
   .chat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--brand), var(--brand2)); opacity: 0; transition: opacity .2s; }
   .chat-card:hover { transform: translateY(-2px); border-color: rgba(129,140,248,.4); box-shadow: 0 10px 26px rgba(2,6,23,.45); }
   .chat-card.active::before { opacity: 1; }
@@ -212,10 +212,20 @@
   ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.42); }
 
   .empty { opacity: .7; animation: awFadeUp .4s ease both; }
-  .databox { background: rgba(30,41,59,.5); backdrop-filter: blur(8px); border: 1px solid rgba(148,163,184,.14); }
+  .databox { background: rgba(30,41,59,.7); border: 1px solid rgba(148,163,184,.14); }
   .skeleton { background: linear-gradient(90deg, rgba(148,163,184,.08), rgba(148,163,184,.16), rgba(148,163,184,.08)); background-size: 400px 100%; animation: awShimmer 1.2s infinite linear; }
 
   .page { animation: awFadeUp .4s ease both; }
+
+  @media (max-width: 900px) {
+    body { margin-left: 0; }
+    header { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: 100%; min-height: 56px; height: auto; flex-direction: row; align-items: center; padding: 8px 10px; border-top: 1px solid rgba(148,163,184,.14); border-right: none; box-shadow: 0 -6px 26px rgba(2,6,23,.5); }
+    header h1, header .connwrap { display: none; }
+    header nav.tabs { flex-direction: row; margin: 0; gap: 4px; overflow-x: auto; flex: none; }
+    header nav.tabs button { text-align: center; white-space: nowrap; }
+    .view { padding-bottom: 76px; }
+    .toast { bottom: 72px; }
+  }
 </style>
 </head>
 <body>
@@ -566,6 +576,8 @@
   let kbItems = [];
   let lastMsgCount = 0;
   let lastDetailSig = '';
+  let lastListSig = '';
+  let lastStatsSig = '';
 
   const SMTP_PRESETS = {
     yandex: { host: 'smtp.yandex.ru', port: 465, secure: true },
@@ -583,6 +595,7 @@
     if (name === 'settings') loadConfig();
     if (name === 'site') { loadSite(); loadSections(); }
     if (name === 'news') loadNews(1);
+    if (name === 'chats') refreshList();
   };
 
   window.setFilter = function (f) {
@@ -615,9 +628,14 @@
   }
 
   async function refreshList() {
+    if (document.hidden || !$('#view-chats').classList.contains('on')) return;
     try {
-      chats = await api('/api/chats');
+      const data = await api('/api/chats');
+      const sig = data.reduce((s, c) => s + c.id + ':' + c.status + ':' + (c.updatedAt || '') + ':' + (c.unread || 0) + ':', '');
+      chats = data;
       markOnline();
+      if (sig === lastListSig) return;
+      lastListSig = sig;
       renderList();
     } catch (e) {
       offline(e && e.message);
@@ -811,6 +829,10 @@
   async function loadStats() {
     try {
       const s = await api('/api/stats');
+      const sig = s.totalSites + '|' + s.activeChats + '|' + s.onlineUsers + '|' + s.totalChats + '|' + s.answers + '|' + s.unresolved + '|' + s.ratings.count + '|' + s.ratings.avg + '|' + s.popular.length;
+      if (lastStatsSig === undefined) lastStatsSig = '';
+      if (sig === lastStatsSig) return;
+      lastStatsSig = sig;
       numEl('sites', s.totalSites);
       numEl('active', s.activeChats);
       numEl('online', s.onlineUsers);
