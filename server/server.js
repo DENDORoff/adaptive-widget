@@ -42,7 +42,9 @@ function loadConfig() {
     flyBase: process.env.AW_FLY_BASE || 'https://neuprint.janelia.org',
     siteUrl: process.env.AW_SITE_URL || 'http://127.0.0.1:8000',
     siteToken: process.env.AW_SITE_TOKEN || '',
-    siteName: process.env.AW_SITE_NAME || ''
+    siteName: process.env.AW_SITE_NAME || '',
+    hidePopular: false,
+    hiddenPopular: []
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -67,6 +69,15 @@ function saveConfigFile() {
 const CFG = loadConfig();
 mailer.configure(CFG);
 discord.configure(CFG);
+
+function normQ(v) {
+  return String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function isHiddenQ(q) {
+  const nq = normQ(q);
+  return !!nq && (CFG.hiddenPopular || []).some((h) => normQ(h) === nq);
+}
 
 const CACHE_FILE = path.join(store.DATA_DIR, 'answers-cache.json');
 const CACHE = { entries: {}, hits: 0 };
@@ -192,7 +203,8 @@ function computeStats() {
       popularMap[k].count++;
     }
   });
-  const popular = Object.keys(popularMap).map((k) => popularMap[k]).sort((a, b) => b.count - a.count).slice(0, 10);
+  const popular = Object.keys(popularMap).map((k) => popularMap[k]).sort((a, b) => b.count - a.count).slice(0, 10)
+    .map((p) => Object.assign({}, p, { hidden: isHiddenQ(p.q) }));
   unresolvedList.reverse();
   return {
     generatedAt: now(),
@@ -204,6 +216,8 @@ function computeStats() {
     unresolved: unresolvedList.length,
     ratings: { count: ratedCount, avg: ratedCount ? ratingSum / ratedCount : 0 },
     popular,
+    hidePopular: !!CFG.hidePopular,
+    hiddenPopular: Array.isArray(CFG.hiddenPopular) ? CFG.hiddenPopular.slice(0, 100) : [],
     unresolvedQueries: unresolvedList.slice(0, 25),
     ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions, qaCount: (CFG.qa || []).length, qaThreshold: CFG.qaThreshold, agentMode: CFG.agentMode },
     cache: { size: Object.keys(CACHE.entries).length, hits: CACHE.hits }
@@ -226,6 +240,8 @@ function publicConfig() {
     agentMode: CFG.agentMode,
     ticketTtlDays: CFG.ticketTtlDays,
     smtp: (CFG.smtp && CFG.smtp.host) ? { on: true, host: CFG.smtp.host, port: CFG.smtp.port || 465, secure: CFG.smtp.secure !== false, user: CFG.smtp.user || '' } : { on: false },
+    hidePopular: !!CFG.hidePopular,
+    hiddenPopular: Array.isArray(CFG.hiddenPopular) ? CFG.hiddenPopular.slice(0, 100) : [],
     discord: {
       on: !!CFG.discordWebhook,
       webhook: CFG.discordWebhook ? String(CFG.discordWebhook).replace(/\/[^/]{6,}$/, '/…') : '',
@@ -409,10 +425,11 @@ async function handle(req, res) {
     const push = (q, source) => {
       const k = ai.cacheKey(q);
       if (!q || !k || seen.has(k)) return;
+      if (isHiddenQ(q)) return;
       seen.add(k);
       items.push({ q: String(q).slice(0, 120), source });
     };
-    computeStats().popular.forEach((p) => push(p.q, 'popular'));
+    if (!CFG.hidePopular) computeStats().popular.forEach((p) => push(p.q, 'popular'));
     (CFG.qa || []).forEach((item) => { if (item && item.q) push(item.q, 'qa'); });
     return json(res, 200, { items: items.slice(0, 8) });
   }
@@ -557,6 +574,10 @@ async function handle(req, res) {
     if (body.discordInsecure !== undefined) CFG.discordInsecure = !!body.discordInsecure;
     if (body.operatorsEnabled !== undefined) CFG.operatorsEnabled = !!body.operatorsEnabled;
     if (body.flyEnabled !== undefined) CFG.flyEnabled = !!body.flyEnabled;
+    if (body.hidePopular !== undefined) CFG.hidePopular = !!body.hidePopular;
+    if (Array.isArray(body.hiddenPopular)) {
+      CFG.hiddenPopular = body.hiddenPopular.map((x) => String(x).trim().slice(0, 120)).filter(Boolean).slice(0, 100);
+    }
     if (typeof body.flyBase === 'string' && body.flyBase.trim()) CFG.flyBase = body.flyBase.trim();
     discord.configure(CFG);
     if (CFG.from !== oldFrom) mailer.configure(CFG);
