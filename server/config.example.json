@@ -1,0 +1,25 @@
+{
+  "provider": "ollama",
+  "endpoint": "http://localhost:11434/v1/chat/completions",
+  "model": "qwen2.5:3b",
+  "apiKey": "",
+  "from": "support@deworld.su",
+  "adminToken": "",
+  "instructions": "",
+  "askEmail": true,
+  "qaThreshold": 0.45,
+  "agentMode": "rag",
+  "ticketTtlDays": 14,
+  "discordWebhook": "",
+  "discordUsername": "Adaptive Widget",
+  "discordAvatar": "",
+  "discordInsecure": false,
+  "operatorsEnabled": true,
+  "flyEnabled": true,
+  "flyBase": "https://neuprint.janelia.org",
+  "qa": [
+    { "q": "Сколько стоят наушники Aurora X?", "a": "Наушники Aurora X стоят 7990 ₽. Доставка по России 2–7 дней.", "keys": ["цена", "наушники", "aurora", "стоимость"] },
+    { "q": "Как вернуть товар?", "a": "Товар можно вернуть в течение 14 дней с момента получения.", "keys": ["возврат", "вернуть", "возвратить"] }
+  ],
+  "smtp": null
+}

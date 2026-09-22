@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Widget — поддержка</title>
+<style>
+  :root {
+    --bg: #0b1120; --bg2: #0f172a; --panel: #1e293b; --panel2: #111827;
+    --line: rgba(148,163,184,.15); --text: #e2e8f0; --sub: #94a3b8;
+    --brand: #6366f1; --brand2: #8b5cf6; --green: #4ade80; --yellow: #fbbf24; --red: #f87171; --violet: #a855f7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Inter, system-ui, sans-serif; background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 260px); color: var(--text); min-height: 100vh; }
+  header { display: flex; align-items: center; gap: 14px; padding: 12px 22px; background: linear-gradient(120deg, rgba(99,102,241,.16), rgba(139,92,246,.10)); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 4; flex-wrap: wrap; backdrop-filter: blur(8px); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 700; background: linear-gradient(90deg,#a5b4fc,#c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header .badge { font-size: 12px; color: var(--sub); }
+  header .badge.ok { color: var(--green); }
+  header .badge.err { color: var(--red); }
+  .tabs { display: flex; gap: 4px; margin-left: 14px; flex-wrap: wrap; }
+  .tabs button { background: transparent; border: 1px solid transparent; color: var(--sub); padding: 7px 14px; border-radius: 10px; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on { background: linear-gradient(120deg, var(--brand), var(--brand2)); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(99,102,241,.35); }
+  .view { display: none; }
+  .view.on { display: block; }
+  .wrap { display: flex; min-height: calc(100vh - 57px); }
+  .list { width: 340px; border-right: 1px solid var(--line); padding: 12px; overflow-y: auto; flex-shrink: 0; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filters button { font-size: 11.5px; padding: 5px 10px; border-radius: 100px; background: transparent; }
+  .filters button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .chat-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; cursor: pointer; background: var(--panel); transition: .15s; }
+  .chat-card:hover { border-color: var(--brand); transform: translateY(-1px); }
+  .chat-card.active { border-color: var(--brand); background: linear-gradient(120deg,#1e2a44,#23255a); }
+  .chat-card .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 6px; }
+  .chat-card .site { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-card .email { color: var(--sub); font-size: 12px; margin-bottom: 4px; }
+  .chat-card .last { color: var(--sub); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st { padding: 2px 8px; border-radius: 100px; font-size: 11px; white-space: nowrap; }
+  .st.ai { background: rgba(99,102,241,.2); color: #a5b4fc; }
+  .st.human { background: rgba(168,85,247,.2); color: var(--violet); }
+  .st.human.wait { background: rgba(251,191,36,.18); color: #fbbf24; animation: stPulse 1.8s ease-in-out infinite; }
+  @keyframes stPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(251,191,36,.35); } 50% { box-shadow: 0 0 0 4px rgba(251,191,36,0); } }
+  .st.closed { background: rgba(148,163,184,.2); color: var(--sub); }
+  .pills { display: flex; gap: 4px; }
+  .pill { font-size: 10.5px; border-radius: 100px; padding: 1px 7px; background: rgba(148,163,184,.16); color: var(--sub); }
+  .pill.err { background: rgba(248,113,113,.15); color: var(--red); }
+  .detail { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; min-width: 0; }
+  .detail .head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .detail .head h2 { font-size: 16px; margin: 0; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; cursor: pointer; font-size: 12.5px; transition: .15s; }
+  button:hover { border-color: var(--brand); }
+  button.primary { background: linear-gradient(120deg, var(--brand), var(--brand2)); border-color: transparent; color: #fff; }
+  button.primary:hover { filter: brightness(1.1); }
+  button.danger:hover { border-color: var(--red); color: var(--red); }
+  .msgs { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); padding: 14px; max-height: 45vh; }
+  .msg { margin-bottom: 12px; display: flex; align-items: flex-end; }
+  .msg .ava { width: 28px; height: 28px; border-radius: 50%; flex: 0 0 28px; margin: 0 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; background: #334155; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg.user .ava { background: #4338ca; }
+  .msg.bot .ava { background: #0284c7; }
+  .msg.agent .ava { background: #a855f7; }
+  .msg.system .ava { display: none; }
+  .msg .bub { max-width: 76%; padding: 8px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .msg.user .bub { background: #312e81; border-top-right-radius: 4px; }
+  .msg.bot .bub { background: #1e293b; border-top-left-radius: 4px; }
+  .msg.agent .bub { background: #4a1d53; border: 1px solid rgba(168,85,247,.4); border-top-left-radius: 4px; }
+  .msg.system { justify-content: center; } .msg.system .bub { background: transparent; color: var(--sub); font-size: 12px; max-width: 100%; }
+  .msg .meta { display: block; font-size: 10.5px; color: var(--sub); margin-bottom: 2px; }
+  .msg.new { animation: msgIn .35s ease both; }
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--sub); margin: 2px 0 8px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .connwrap { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sub); transition: .2s; }
+  .dot.ok { background: var(--green); box-shadow: 0 0 0 3px rgba(74,222,128,.18); animation: connPulse 1.8s ease-in-out infinite; }
+  .dot.err { background: var(--red); }
+  @keyframes connPulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+  .live-tag { font-size: 10.5px; color: var(--green); opacity: .85; }
+  .reply { display: flex; gap: 8px; margin: 12px 0; } .reply input { flex: 1; }
+  input, textarea, select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--brand); }
+  .cfg { margin-top: 12px; display: grid; gap: 10px; }
+  .cfg label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 4px; }
+  .cfg textarea { width: 100%; resize: vertical; min-height: 70px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .hint { color: var(--sub); font-size: 12px; }
+  .empty { color: var(--sub); text-align: center; margin-top: 60px; }
+  .toast { position: fixed; bottom: 18px; right: 18px; background: var(--panel); border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 5; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+  .page { padding: 20px 26px; max-width: 1080px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .card .num { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .card .lbl { font-size: 12px; color: var(--sub); }
+  .page h3 { font-size: 14px; margin: 18px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--sub); font-weight: 500; font-size: 12px; }
+  .cfg2 { display: grid; gap: 10px; max-width: 640px; }
+  .cfg2 label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 4px; }
+  .cfg2 input, .cfg2 textarea, .cfg2 select { width: 100%; }
+  .cfg2 textarea { min-height: 90px; resize: vertical; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .ok { color: var(--green); } .warn { color: var(--yellow); } .err { color: var(--red); }
+  .banner { padding: 10px 16px; margin: 0 20px 6px; border-radius: 10px; font-size: 12.5px; display: none; }
+  .banner.err { background: rgba(220,38,38,.12); color: var(--red); border: 1px solid rgba(220,38,38,.35); }
+  .linkbtn { background: none; border: none; color: #a5b4fc; padding: 0; cursor: pointer; font-size: 12.5px; text-decoration: underline; }
+  .linkbtn:hover { color: #c4b5fd; }
+  .databox { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 18px; }
+  .databox h4 { margin: 0 0 10px; font-size: 13.5px; }
+  .databox h4 .tag { font-size: 11px; color: var(--sub); font-weight: 400; }
+  .instr-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .instr-item:last-child { border-bottom: none; }
+  .instr-item .txt { flex: 1; min-width: 0; }
+  .instr-item .t { font-size: 13px; font-weight: 600; }
+  .instr-item .s { font-size: 12px; color: var(--sub); word-break: break-word; white-space: pre-wrap; }
+  .meta-line { font-size: 11px; color: var(--sub); }
+  .smtp-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 100px; }
+  .smtp-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sub); }
+  .smtp-status.on { background: rgba(74,222,128,.12); color: var(--green); } .smtp-status.on .dot { background: var(--green); }
+  .smtp-status.off { background: rgba(148,163,184,.12); color: var(--sub); }
+  fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 12px 0; padding: 12px 14px; }
+  legend { font-size: 12px; color: var(--sub); padding: 0 6px; }
+  .mlrow { margin-bottom: 10px; }
+  .mlhead { font-size: 11.5px; color: var(--sub); margin-bottom: 4px; font-family: ui-monospace, Consolas, monospace; }
+  .mlgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mlgrid label { font-size: 10.5px; color: var(--sub); display: block; margin-bottom: 3px; }
+  .mlgrid textarea { width: 100%; min-height: 54px; resize: vertical; font-size: 12.5px; }
+  @media (max-width: 760px) { .mlgrid { grid-template-columns: 1fr; } }
+  .split { display: flex; gap: 14px; }
+  .split > div { flex: 1; min-width: 0; }
+  /* ============ REDESIGN OVERLAY ============ */
+  @keyframes awAurora { 0%,100% { transform: translate(-6%, -4%) scale(1); } 50% { transform: translate(6%, 4%) scale(1.12); } }
+  @keyframes awFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes awPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  @keyframes awSheen { 0% { transform: translateX(-130%) skewX(-18deg); } 60%,100% { transform: translateX(230%) skewX(-18deg); } }
+  @keyframes awShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+  @keyframes awRipple { from { box-shadow: 0 0 0 0 rgba(99,102,241,.55); } to { box-shadow: 0 0 0 14px rgba(99,102,241,0); } }
+
+  body { position: relative; overflow-x: hidden; }
+  body::before, body::after {
+    content: ""; position: fixed; width: 640px; height: 640px; border-radius: 50%;
+    filter: blur(110px); opacity: .16; z-index: 0; pointer-events: none; animation: awAurora 18s ease-in-out infinite;
+  }
+  body::before { background: #6366f1; top: -220px; left: -140px; }
+  body::after { background: #a855f7; bottom: -260px; right: -160px; animation-delay: -9s; }
+  header, .wrap, .view, .toast { position: relative; z-index: 1; }
+
+  header { background: rgba(15,23,42,.72); backdrop-filter: blur(14px) saturate(1.3); border-bottom: 1px solid rgba(148,163,184,.14); box-shadow: 0 8px 32px rgba(2,6,23,.35); }
+  header h1 { position: relative; padding-left: 26px; letter-spacing: .3px; }
+  header h1::before {
+    content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; border-radius: 6px;
+    background: linear-gradient(135deg, #818cf8, #a855f7); box-shadow: 0 4px 14px rgba(129,140,248,.45);
+    animation: awRipple 3s ease-out infinite;
+  }
+  .tabs button { border-radius: 12px; position: relative; overflow: hidden; transition: color .25s, transform .18s; }
+  .tabs button::after { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, var(--brand), var(--brand2)); opacity: 0; transition: opacity .25s; }
+  .tabs button:hover { transform: translateY(-1px); }
+  .tabs button.on { box-shadow: 0 6px 20px rgba(99,102,241,.45); transform: translateY(-1px); }
+  .tabs button.on::after { opacity: 1; }
+  .tabs button * { position: relative; z-index: 1; }
+
+  .view.on { animation: awFadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+  .card { background: rgba(30,41,59,.55); border: 1px solid rgba(148,163,184,.14); backdrop-filter: blur(8px); position: relative; overflow: hidden; transition: transform .25s, border-color .25s, box-shadow .25s; }
+  .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(129,140,248,.7), transparent); opacity: 0; transition: opacity .25s; }
+  .card:hover { transform: translateY(-4px); border-color: rgba(129,140,248,.45); box-shadow: 0 14px 34px rgba(2,6,23,.5), 0 0 0 1px rgba(129,140,248,.18); }
+  .card:hover::before { opacity: 1; }
+  .card .num { font-size: 30px; background: linear-gradient(120deg, #e0e7ff, #c7d2fe 55%, #ddd6fe); -webkit-background-clip: text; background-clip: text; color: transparent; transition: color .2s; }
+
+  .chat-card { background: rgba(30,41,59,.55); backdrop-filter: blur(6px); position: relative; overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s; }
+  .chat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--brand), var(--brand2)); opacity: 0; transition: opacity .2s; }
+  .chat-card:hover { transform: translateY(-2px); border-color: rgba(129,140,248,.4); box-shadow: 0 10px 26px rgba(2,6,23,.45); }
+  .chat-card.active::before { opacity: 1; }
+
+  button { position: relative; overflow: hidden; transition: transform .16s, border-color .2s, box-shadow .2s, filter .2s; }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0) scale(.97); }
+  button.primary::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(105deg, transparent, rgba(255,255,255,.35), transparent); transform: translateX(-130%) skewX(-18deg); }
+  button.primary:hover::after { animation: awSheen .9s ease; }
+
+  input, textarea, select { transition: border-color .2s, box-shadow .2s, background .2s; }
+  input:focus, textarea:focus, select:focus { box-shadow: 0 0 0 4px rgba(99,102,241,.18); }
+
+  .msg { animation: awFadeUp .3s ease both; }
+  .msg:nth-child(odd) { animation-duration: .26s; }
+  .msg .bub { box-shadow: 0 4px 14px rgba(2,6,23,.35); }
+  .msg.user .bub { background: linear-gradient(135deg, #3730a3, #4338ca); }
+  .msg.bot .bub { background: linear-gradient(160deg, #24304a, #1e293b); }
+  .msg.agent .bub { background: linear-gradient(160deg, #572264, #4a1d53); }
+
+  input[type="checkbox"] { appearance: none; width: 38px !important; height: 21px !important; border-radius: 100px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; vertical-align: -5px; margin-right: 8px !important; position: relative; transition: background .25s, border-color .25s; }
+  input[type="checkbox"]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #cbd5e1; transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .25s; }
+  input[type="checkbox"]:checked { background: linear-gradient(120deg, var(--brand), var(--brand2)); border-color: transparent; }
+  input[type="checkbox"]:checked::after { transform: translateX(16px); background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  label:has(input[type="checkbox"]) { display: inline-flex; align-items: center; line-height: 1.4; }
+
+  .toast { background: rgba(30,41,59,.92); backdrop-filter: blur(10px); border: 1px solid rgba(148,163,184,.18); border-radius: 14px; box-shadow: 0 12px 40px rgba(2,6,23,.55); animation: awFadeUp .35s cubic-bezier(.22,1,.36,1) both; }
+
+  .filters button { transition: transform .16s, background .2s, box-shadow .2s; }
+  .filters button:hover { transform: translateY(-1px); }
+  .filters button.on { box-shadow: 0 4px 14px rgba(99,102,241,.4); }
+
+  .st { backdrop-filter: blur(4px); }
+  details[open] summary { color: var(--text); }
+  summary.hint { cursor: pointer; transition: color .2s; }
+  summary.hint:hover { color: var(--text); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 100px; border: 2px solid var(--bg2); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.42); }
+
+  .empty { opacity: .7; animation: awFadeUp .4s ease both; }
+  .databox { background: rgba(30,41,59,.5); backdrop-filter: blur(8px); border: 1px solid rgba(148,163,184,.14); }
+  .skeleton { background: linear-gradient(90deg, rgba(148,163,184,.08), rgba(148,163,184,.16), rgba(148,163,184,.08)); background-size: 400px 100%; animation: awShimmer 1.2s infinite linear; }
+
+  .page { animation: awFadeUp .4s ease both; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Adaptive Widget — поддержка</h1>
+  <nav class="tabs">
+    <button id="tab_chats" class="on" onclick="showTab('chats')">Чаты</button>
+    <button id="tab_stats" onclick="showTab('stats')">Статистика</button>
+    <button id="tab_data" onclick="showTab('data')">Данные и инструкции</button>
+    <button id="tab_site" onclick="showTab('site')">Сайт</button>
+    <button id="tab_news" onclick="showTab('news')">Новости</button>
+    <button id="tab_settings" onclick="showTab('settings')">Настройки</button>
+  </nav>
+  <span class="connwrap">
+    <span class="dot" id="conn_dot"></span>
+    <span class="badge" id="conn">подключение...</span>
+  </span>
+</header>
+
+<div id="apibanner" class="banner err"></div>
+
+<div class="view on" id="view-chats">
+  <div class="wrap">
+    <div class="list">
+      <div class="filters" id="filters">
+        <button data-f="all" class="on" onclick="setFilter('all')">Все</button>
+        <button data-f="human" onclick="setFilter('human')">Оператор</button>
+        <button data-f="unresolved" onclick="setFilter('unresolved')">Нерешённые</button>
+        <button data-f="closed" onclick="setFilter('closed')">Закрытые</button>
+      </div>
+      <div id="list"><div class="empty">Загрузка...</div></div>
+    </div>
+    <div class="detail" id="detail">
+      <div class="empty" id="empty">Выберите чат слева</div>
+      <div id="chatview" style="display:none">
+        <div class="head">
+          <h2 id="d_site"></h2>
+          <span class="st" id="d_status"></span>
+          <span class="hint" id="d_email"></span>
+          <div class="actions" style="margin-left:auto">
+            <button id="btn_takeover">Взять в операторы</button>
+            <button id="btn_ai">Вернуть ИИ</button>
+            <button class="danger" id="btn_close">Закрыть</button>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#4338ca"></i>Клиент — справа</span>
+          <span><i style="background:#0284c7"></i>ИИ-агент</span>
+          <span><i style="background:#a855f7"></i>Оператор</span>
+        </div>
+        <div class="msgs" id="d_msgs"></div>
+        <div class="reply">
+          <input id="d_reply" placeholder="Ответ клиенту от имени оператора... Enter для отправки">
+          <button class="primary" id="btn_reply">Ответить</button>
+        </div>
+        <div class="cfg">
+          <div>
+            <label>Инструкции для ИИ в этом чате (сохраняются и в базу инструкций)</label>
+            <textarea id="d_instr"></textarea>
+            <div class="actions" style="margin-top:6px"><button id="btn_instr">Сохранить инструкции</button></div>
+          </div>
+          <details>
+            <summary class="hint">Промпт и данные, которые виджет собрал с сайта</summary>
+            <div>
+              <label>Промпт (снимок с сайта)</label>
+              <textarea id="d_prompt" readonly style="color:var(--sub)"></textarea>
+            </div>
+            <div>
+              <label>Извлечённые знания (первые 12)</label>
+              <textarea id="d_know" readonly style="color:var(--sub)"></textarea>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-stats">
+  <div class="page">
+    <div class="cards">
+      <div class="card"><div class="num" id="st_sites">–</div><div class="lbl">Сайтов с агентом</div></div>
+      <div class="card"><div class="num" id="st_active">–</div><div class="lbl">Активных сейчас</div></div>
+      <div class="card"><div class="num" id="st_online">–</div><div class="lbl">Пользователей онлайн</div></div>
+      <div class="card"><div class="num" id="st_chats">–</div><div class="lbl">Всего чатов</div></div>
+      <div class="card"><div class="num" id="st_answers">–</div><div class="lbl">Ответов агента</div></div>
+      <div class="card"><div class="num" id="st_unresolved">–</div><div class="lbl">Нерешённых запросов</div></div>
+      <div class="card"><div class="num" id="st_rating">–</div><div class="lbl">Средняя оценка</div></div>
+    </div>
+    <h3>Популярные запросы</h3>
+    <div id="st_popular" class="hint">нет данных</div>
+    <h3>Запросы, где агент не решил проблему</h3>
+    <div id="st_unres_t" class="hint">нет данных</div>
+    <div class="hint" id="st_ai" style="margin-top:18px"></div>
+  </div>
+</div>
+
+<div class="view" id="view-data">
+  <div class="page">
+    <div class="databox">
+      <h4>Инструкции для ИИ-агентов <span class="tag">— сохраняются при нажатии в чате, добавляются вручную и учитываются в ответах агента</span></h4>
+      <div class="cfg2" style="max-width:100%">
+        <div class="row">
+          <div><label>Заголовок</label><input id="kb_title" placeholder="Например: Правило ответов про скидки"></div>
+          <div><label>Сайт (необязательно)</label><input id="kb_site" placeholder="Например: my-shop.ru"></div>
+        </div>
+        <label>Текст инструкции</label>
+        <textarea id="kb_text" placeholder="Всегда предлагайте клиенту скидку 10%..."></textarea>
+        <div class="actions">
+          <button class="primary" id="btn_kb_add">Добавить инструкцию</button>
+        </div>
+      </div>
+      <div id="kb_list" style="margin-top:10px"><div class="hint">Загрузка...</div></div>
+    </div>
+    <div class="databox">
+      <h4>Нерешённые запросы <span class="tag">— агент не нашёл ответ · клик по «открыть» переносит в чат</span></h4>
+      <div id="dt_unres_t" class="hint">нет данных</div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-settings">
+  <div class="page">
+    <h3 style="margin-top:0">Параметры ИИ-агента</h3>
+    <p class="hint">Применяются ко всем сайтам с этим сервером. Сохраняются в <code>server/config.json</code>.</p>
+    <div class="cfg2">
+      <div class="row">
+        <div>
+          <label>Провайдер</label>
+          <select id="cfg_provider">
+            <option value="ollama">Ollama (локальная)</option>
+            <option value="openai">OpenAI</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="groq">Groq</option>
+            <option value="mistral">Mistral</option>
+            <option value="custom">Свой OpenAI-совместимый API</option>
+          </select>
+        </div>
+        <div>
+          <label>Модель</label>
+          <input id="cfg_model" placeholder="qwen2.5:3b">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Режим работы ИИ-агента</label>
+          <select id="cfg_agentmode">
+            <option value="rag">RAG на сервере (весь контекст сразу)</option>
+            <option value="tools">Агент с инструментами (tool-calling)</option>
+          </select>
+        </div>
+        <div>
+          <label>Удалять старые тикеты (дней, 0 = выкл)</label>
+          <input id="cfg_ttl" type="number" min="0" max="365" placeholder="14">
+        </div>
+      </div>
+      <label>Эндпоинт (OpenAI-совместимый)</label>
+      <input id="cfg_endpoint" placeholder="http://localhost:11434/v1/chat/completions">
+      <label>API-ключ (оставьте пустым, чтобы не менять текущий)</label>
+      <input id="cfg_apikey" placeholder="ввести новый ключ при необходимости">
+      <label>Email отправителя уведомлений</label>
+      <input id="cfg_from" placeholder="support@deworld.su">
+      <label><input type="checkbox" id="cfg_askemail" style="width:auto;margin-right:6px"> Спрашивать email перед чатом</label>
+      <label><input type="checkbox" id="cfg_operators" style="width:auto;margin-right:6px"> Операторы включены</label>
+      <p class="hint">Выкл — кнопки «Позвать оператора»/«Вернуть ИИ» у клиентов скрываются, запрос оператора отклоняется, работает только ИИ-агент (админ-ответ тоже отключается).</p>
+      <label><input type="checkbox" id="cfg_fly" style="width:auto;margin-right:6px"> Вкладка «Муха» — чат и 3D-модель коннектома (эксперимент)</label>
+      <p class="hint">Альфа-фича: отдельная вкладка в виджете для клиентов — вопросы к данным коннектома мозга мухи и 3D-визуализация нейронов (NeuPrint, офлайн-справочник как запас). Выкл — вкладка полностью скрыта.</p>
+      <label>Инструкции для ИИ-агента (добавляются к каждому ответу)</label>
+      <textarea id="cfg_instr" placeholder="Например: всегда предлагайте скидку 10% новым клиентам"></textarea>
+      <label>Вопрос-ответ (работает даже без ИИ-модели). Одна пара на строку: «Вопрос || Ответ» или «Вопрос || Ответ || ключ1, ключ2»</label>
+      <textarea id="cfg_qa" placeholder="Сколько стоят наушники Aurora X? || Наушники Aurora X стоят 7990 ₽&#10;Как вернуть товар? || Возврат в течение 14 дней, деньги вернём за 5 рабочих дней || возврат, возвратить"></textarea>
+      <div class="row">
+        <div>
+          <label>Порог схожести вопроса (0.2 — лояльный, 0.7 — строгий)</label>
+          <input id="cfg_qathr" type="number" min="0.2" max="0.7" step="0.05" value="0.45">
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Уведомления по email (SMTP)</legend>
+        <label>Статус: <span id="smtp_status" class="smtp-status off"><span class="dot"></span>загрузка...</span></label>
+        <div class="row">
+          <div>
+            <label>Провайдер (пресет, можно не выбирать)</label>
+            <select id="cfg_smtp_provider">
+              <option value="">— вручную —</option>
+              <option value="yandex">Яндекс.Почта</option>
+              <option value="gmail">Gmail</option>
+              <option value="mailru">Mail.ru</option>
+            </select>
+          </div>
+          <div><label>SMTP-хост</label><input id="cfg_smtp_host" placeholder="smtp.yandex.ru"></div>
+          <div><label>Порт</label><input id="cfg_smtp_port" type="number" placeholder="465"></div>
+        </div>
+        <div class="row">
+          <div><label>Логин (email)</label><input id="cfg_smtp_user" placeholder="bot@yandex.ru"></div>
+          <div><label>Пароль / пароль приложения</label><input id="cfg_smtp_pass" type="password" placeholder="••••"></div>
+          <div><label>Отправитель (from)</label><input id="cfg_smtp_from" placeholder="bot@yandex.ru"></div>
+        </div>
+        <label><input type="checkbox" id="cfg_smtp_secure" style="width:auto;margin-right:6px"> SSL/TLS (включать для порта 465, для 587 оставить выключенным)</label>
+        <p class="hint" id="smtp_help">Демо-режим без SMTP: письма пишутся в outbox (server/data/email.log.ndjson). Заполните SMTP — и письма поедут реально.</p>
+        <div class="actions">
+          <button class="primary" id="btn_smtp_test">Отправить тестовое письмо</button>
+          <span class="hint" id="smtp_saved"></span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Уведомления в Discord</legend>
+        <label>Статус: <span id="discord_status" class="smtp-status off"><span class="dot"></span>загрузка...</span></label>
+        <label>Webhook URL (пусто — выключить)</label>
+        <input id="cfg_discord" placeholder="https://discord.com/api/webhooks/...">
+        <div class="row">
+          <div><label>Имя бота</label><input id="cfg_discord_user" placeholder="Adaptive Widget"></div>
+          <div><label>Аватар (URL)</label><input id="cfg_discord_avatar" placeholder="https://..."></div>
+        </div>
+        <label><input type="checkbox" id="cfg_discord_insecure" style="width:auto;margin-right:6px"> Не проверять TLS-сертификат Discord (для корпоративного прокси/антивируса)</label>
+        <p class="hint">В канал уходят события: новый чат, запрос оператора, нерешённый вопрос, оценка диалога, ответ оператора.</p>
+        <div class="actions">
+          <button id="btn_discord_off">Отключить Discord</button>
+          <span class="hint" id="discord_saved"></span>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button class="primary" id="btn_savecfg">Сохранить настройки</button>
+        <span class="hint" id="cfg_saved"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-site">
+  <div class="page">
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <h3 style="margin:0">Сайт колледжа — <span id="sv_name">…</span></h3>
+      <div class="actions">
+        <button id="btn_site_refresh">Обновить</button>
+        <button id="btn_site_cache">Очистить кэш сайта</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="num" id="sv_online">–</div><div class="lbl">Визитёров онлайн (beacon)</div></div>
+      <div class="card"><div class="num" id="sv_widget">–</div><div class="lbl">Активных диалогов виджета</div></div>
+      <div class="card"><div class="num" id="sv_news_total">–</div><div class="lbl">Всего новостей</div></div>
+      <div class="card"><div class="num" id="sv_news_pub">–</div><div class="lbl">Опубликовано</div></div>
+      <div class="card"><div class="num" id="sv_news_feat">–</div><div class="lbl">Избранных</div></div>
+      <div class="card"><div class="num" id="sv_pages">–</div><div class="lbl">Страниц</div></div>
+      <div class="card"><div class="num" id="sv_sections">–</div><div class="lbl">Разделов</div></div>
+      <div class="card"><div class="num" id="sv_visits">–</div><div class="lbl">Визитов (статистика)</div></div>
+    </div>
+    <h3>Онлайн сейчас</h3>
+    <div class="split">
+      <div class="databox"><h4>Визитёры сайта <span class="tag">последние 5 минут</span></h4><div id="sv_visitors"><div class="hint">Загрузка…</div></div></div>
+      <div class="databox"><h4>Диалоги виджета <span class="tag">последние 10 минут</span></h4><div id="sv_wchats"><div class="hint">Загрузка…</div></div></div>
+    </div>
+    <h3>Разделы сайта (page_sections)</h3>
+    <div class="cfg2" style="max-width:100%">
+      <div class="actions" style="margin-bottom:8px">
+        <select id="sv_page" style="min-width:220px"><option value="">— все страницы —</option></select>
+      </div>
+      <div id="sv_sectlist"><div class="hint">Загрузка…</div></div>
+    </div>
+  </div>
+  <div class="page" id="sv_editor" style="display:none; max-width:none; border-top:1px solid var(--line); margin-top:0">
+    <h3>Редактор раздела: <span id="sv_ed_label" class="warn"></span></h3>
+    <div class="cfg2" style="max-width:100%">
+      <div class="row">
+        <div><label>Заголовок (админ.)</label><input id="sv_ed_title"></div>
+        <div><label>Описание (админ.)</label><input id="sv_ed_desc"></div>
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Meta title</label><input id="sv_ed_meta_title"></div>
+        <div><label>Meta description</label><input id="sv_ed_meta_desc"></div>
+        <div style="flex:0 0 130px"><label>Сортировка</label><input id="sv_ed_order" type="number"></div>
+        <div style="flex:0 0 150px; display:flex; align-items:center; padding-bottom:9px"><label><input type="checkbox" id="sv_ed_active" style="width:auto;margin-right:6px"> Активен</label></div>
+      </div>
+      <h4>Контент (мультиязык RU / KK / EN)</h4>
+      <div id="sv_ed_content"></div>
+      <div class="actions">
+        <button class="primary" onclick="saveSection()">Сохранить раздел</button>
+        <button onclick="closeSectionEditor()">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-news">
+  <div class="page">
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <h3 style="margin:0">Новости сайта <span class="hint" id="n_pages"></span></h3>
+      <button class="primary" onclick="newNews()">Новая новость</button>
+    </div>
+    <div id="n_list" style="margin-top:12px"><div class="hint">Загрузка…</div></div>
+    <div class="actions" style="margin-top:10px">
+      <button onclick="loadNews(Math.max(1, newsState.page - 1))">← Назад</button>
+      <button onclick="loadNews(newsState.page + 1)">Вперёд →</button>
+    </div>
+  </div>
+  <div class="page" id="n_form" style="display:none">
+    <h3>Редактор новости</h3>
+    <div class="cfg2" style="max-width:100%">
+      <fieldset><legend>Название</legend><div class="mlgrid">
+        <div><label>RU</label><textarea id="n_title_ru"></textarea></div>
+        <div><label>KK</label><textarea id="n_title_kk"></textarea></div>
+        <div><label>EN</label><textarea id="n_title_en"></textarea></div>
+      </div></fieldset>
+      <fieldset><legend>Анонс</legend><div class="mlgrid">
+        <div><label>RU</label><textarea id="n_exc_ru" style="min-height:36px"></textarea></div>
+        <div><label>KK</label><textarea id="n_exc_kk" style="min-height:36px"></textarea></div>
+        <div><label>EN</label><textarea id="n_exc_en" style="min-height:36px"></textarea></div>
+      </div></fieldset>
+      <fieldset><legend>Текст новости (поддерживается HTML)</legend><div class="mlgrid">
+        <div><label>RU</label><textarea id="n_cnt_ru" style="min-height:150px"></textarea></div>
+        <div><label>KK</label><textarea id="n_cnt_kk" style="min-height:150px"></textarea></div>
+        <div><label>EN</label><textarea id="n_cnt_en" style="min-height:150px"></textarea></div>
+      </div></fieldset>
+      <div class="row">
+        <div><label>Обложка (путь из папки public)</label><input id="n_image" placeholder="news/photo.jpg"></div>
+        <div><label>Галерея (пути, по одному на строку)</label><textarea id="n_gallery" style="min-height:40px"></textarea></div>
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Дата публикации</label><input id="n_date" type="datetime-local"></div>
+        <div style="display:flex; flex-wrap:wrap; gap:14px; padding-bottom:8px">
+          <label><input type="checkbox" id="n_pub" style="width:auto;margin-right:6px"> Опубликовано</label>
+          <label><input type="checkbox" id="n_feat" style="width:auto;margin-right:6px"> Избранное</label>
+          <label><input type="checkbox" id="n_regenslug" style="width:auto;margin-right:6px"> Обновить slug</label>
+        </div>
+        <div class="actions">
+          <button class="primary" id="n_form_btn" onclick="saveNews()">Создать новость</button>
+          <button class="danger" id="n_del" onclick="deleteNews()" style="display:none">Удалить</button>
+          <button onclick="cancelNewsForm()">Отмена</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  let chats = [];
+  let currentId = null;
+  let current = null;
+  let filter = 'all';
+  let kbItems = [];
+  let lastMsgCount = 0;
+  let lastDetailSig = '';
+
+  const SMTP_PRESETS = {
+    yandex: { host: 'smtp.yandex.ru', port: 465, secure: true },
+    gmail: { host: 'smtp.gmail.com', port: 465, secure: true },
+    mailru: { host: 'smtp.mail.ru', port: 465, secure: true }
+  };
+
+  window.showTab = function (name) {
+    ['chats', 'stats', 'data', 'settings', 'site', 'news'].forEach((t) => {
+      $('#view-' + t).classList.toggle('on', t === name);
+      $('#tab_' + t).classList.toggle('on', t === name);
+    });
+    if (name === 'stats') loadStats();
+    if (name === 'data') loadData();
+    if (name === 'settings') loadConfig();
+    if (name === 'site') { loadSite(); loadSections(); }
+    if (name === 'news') loadNews(1);
+  };
+
+  window.setFilter = function (f) {
+    filter = f;
+    document.querySelectorAll('#filters button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-f') === f));
+    renderList();
+  };
+
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._h);
+    t._h = setTimeout(() => (t.style.display = 'none'), 2500);
+  }
+
+  async function api(url, opt) {
+    const token = (function () { try { return localStorage.getItem('aw_token|' + location.host) || ''; } catch (e) { return ''; } })();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['x-admin-token'] = token;
+    const r = await fetch(url, Object.assign({ headers }, opt));
+    if (r.status === 401) {
+      const asked = prompt('Сервер требует пароль оператора:');
+      if (!asked) throw new Error('нет доступа');
+      try { localStorage.setItem('aw_token|' + location.host, asked.trim()); } catch (e) {}
+      return api(url, opt);
+    }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  async function refreshList() {
+    try {
+      chats = await api('/api/chats');
+      markOnline();
+      renderList();
+    } catch (e) {
+      offline(e && e.message);
+    }
+  }
+
+  function markOnline() {
+    $('#conn').classList.remove('err');
+    $('#conn').classList.add('ok');
+    $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов · ' + new Date().toLocaleTimeString('ru-RU');
+    $('#conn_dot').className = 'dot ok';
+    $('#apibanner').style.display = 'none';
+  }
+
+  function offline(reason) {
+    const isFile = location.protocol === 'file:';
+    $('#conn').classList.remove('ok');
+    $('#conn').classList.add('err');
+    $('#conn').textContent = isFile ? 'открыт как файл — нужен http' : 'сервер недоступен';
+    $('#conn_dot').className = 'dot err';
+    const el = $('#apibanner');
+    el.textContent = isFile
+      ? 'Админка открыта как файл (file://). Запустите `node server/server.js` и откройте http://localhost:3000/admin'
+      : (reason || 'сеть/API недоступен') + '. Запустите `node server/server.js` и откройте http://localhost:3000/admin (не как файл).';
+    el.style.display = 'block';
+    const emptyEl = $('#list .empty');
+    if (emptyEl) emptyEl.textContent = isFile
+      ? 'Нужен сервер: node server/server.js → откройте http://localhost:3000/admin'
+      : 'Сервер не отвечает — проверьте: запущен ли сервер и открыта ли админка по http://localhost:3000/admin';
+  }
+
+  function chatMatches(c) {
+    if (filter === 'human') return c.status === 'human';
+    if (filter === 'closed') return c.status === 'closed';
+    if (filter === 'unresolved') return (c.unresolvedCount || 0) > 0;
+    return true;
+  }
+
+  function chatWaiting(c) {
+    if (c.waiting !== undefined) return !!c.waiting;
+    const ms = c.messages || [];
+    for (let i = ms.length - 1; i >= 0; i--) {
+      if (ms[i].role === 'agent') return false;
+      if (ms[i].role === 'user') return true;
+    }
+    return c.status === 'human';
+  }
+
+  function statusLabel(c) {
+    if (c.status === 'closed') return 'Закрыт';
+    if (c.status === 'human') return chatWaiting(c) ? 'Ждёт оператора' : 'Оператор отвечает';
+    return 'Общается с ИИ';
+  }
+
+  function statusClass(c) {
+    return 'st ' + c.status + (c.status === 'human' && chatWaiting(c) ? ' wait' : '');
+  }
+
+  function renderList() {
+    const list = $('#list');
+    const filtered = chats.filter(chatMatches);
+    if (!filtered.length) { list.innerHTML = '<div class="empty">Нет чатов по фильтру «' + filter + '»</div>'; return; }
+    list.innerHTML = filtered.map((c) => {
+      const d = new Date(c.updatedAt).toLocaleString('ru-RU');
+      const pills = [];
+      if ((c.unresolvedCount || 0) > 0) pills.push('<span class="pill err">нерешённое: ' + c.unresolvedCount + '</span>');
+      if (c.rating) pills.push('<span class="pill">⭐' + c.rating + '</span>');
+      return '<div class="chat-card' + (c.id === currentId ? ' active' : '') + '" data-id="' + esc(c.id) + '">' +
+        '<div class="top"><span class="site">' + esc(c.siteName || 'Чат') + '</span><span class="' + statusClass(c) + '">' + esc(statusLabel(c)) + '</span></div>' +
+        '<div class="email">' + esc(c.email || '— без почты') + ' <span class="pills">' + pills.join('') + '</span></div>' +
+        '<div class="last">' + esc(c.lastText || '…') + ' · ' + esc(d) + '</div>' +
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.chat-card').forEach((el) => {
+      el.addEventListener('click', () => openChat(el.getAttribute('data-id')));
+    });
+  }
+
+  window.openChat = async function (id) {
+    if ($('#view-chats').classList.contains('on') === false) showTab('chats');
+    if (id === currentId) return loadDetail();
+    currentId = id;
+    lastMsgCount = 0;
+    lastDetailSig = '';
+    renderList();
+    $('#empty').style.display = 'none';
+    $('#chatview').style.display = 'block';
+    await loadDetail();
+  };
+
+  function detailSig(c) {
+    const msgs = c.messages || [];
+    const last = msgs[msgs.length - 1] || {};
+    return msgs.length + '|' + (last.ts || '') + '|' + c.status + '|' + (c.rating || '') + '|' + (chatWaiting(c) ? 'w' : '-');
+  }
+
+  async function loadDetail(soft) {
+    if (!currentId) return;
+    try {
+      const c = await api('/api/chat/' + currentId + '/full');
+      if (soft && detailSig(c) === lastDetailSig) { current = c; return; }
+      const box = $('#d_msgs');
+      const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 70;
+      current = c;
+      lastDetailSig = detailSig(c);
+      renderDetail(!!soft, wasAtBottom);
+    } catch (e) {
+      if (!soft) { toast('Не удалось загрузить чат'); offline(e && e.message); }
+    }
+  }
+
+  function renderDetail(soft, wasAtBottom) {
+    const c = current;
+    $('#d_site').textContent = c.siteName || 'Чат ' + c.id;
+    const st = $('#d_status');
+    st.textContent = statusLabel(c) + (c.rating ? ' · ⭐' + c.rating : '');
+    st.className = statusClass(c);
+    $('#d_email').textContent = '✉ ' + (c.email || '—') + ' · ' + new Date(c.createdAt).toLocaleString('ru-RU');
+    const names = { user: 'Клиент', bot: 'ИИ-агент', agent: 'Оператор', system: 'Система' };
+    const initials = { user: 'К', bot: 'ИИ', agent: 'О', system: '·' };
+    const msgs = c.messages || [];
+    const prev = soft ? lastMsgCount : 0;
+    $('#d_msgs').innerHTML = msgs.map((m, i) =>
+      '<div class="msg ' + esc(m.role) + (i >= prev ? ' new' : '') + '">' +
+        '<div class="ava">' + esc(initials[m.role] || '?') + '</div>' +
+        '<div class="bub"><span class="meta">' + esc(names[m.role] || m.role) + ' · ' + esc(new Date(m.ts).toLocaleTimeString('ru-RU')) + '</span>' + esc(m.text) + '</div>' +
+      '</div>'
+    ).join('') || '<div class="hint" style="text-align:center">Сообщений пока нет</div>';
+    if (!soft || wasAtBottom) $('#d_msgs').scrollTop = $('#d_msgs').scrollHeight;
+    lastMsgCount = msgs.length;
+    if (!soft) {
+      $('#d_instr').value = c.instructions || '';
+      $('#d_prompt').value = c.promptSnap || '—';
+      $('#d_know').value = (c.knowledge || []).slice(0, 12).map((k) => k.title + ' :: ' + String(k.content || '').slice(0, 120)).join('\n') || '—';
+    }
+  }
+
+  $('#btn_reply').addEventListener('click', sendReply);
+  $('#d_reply').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendReply(); });
+
+  async function sendReply() {
+    const text = $('#d_reply').value.trim();
+    if (!text) return;
+    await api('/api/chat/' + currentId + '/reply', { method: 'POST', body: JSON.stringify({ text }) });
+    $('#d_reply').value = '';
+    toast('Ответ отправлен' + (current.email ? ' (если клиент офлайн — уйдёт на ' + current.email + ')' : ''));
+    loadDetail();
+  }
+
+  $('#btn_takeover').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/handoff', { method: 'POST', body: '{}' });
+    toast('Чат переведён на оператора');
+    loadDetail(); refreshList();
+  });
+
+  $('#btn_ai').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/mode', { method: 'POST', body: JSON.stringify({ mode: 'ai' }) });
+    toast('ИИ-агент возобновлён');
+    loadDetail(); refreshList();
+  });
+
+  $('#btn_close').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/close', { method: 'POST', body: '{}' });
+    toast('Чат закрыт');
+    loadDetail(); refreshList();
+  });
+
+  $('#btn_instr').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/instructions', { method: 'POST', body: JSON.stringify({ instructions: $('#d_instr').value }) });
+    toast('Инструкции сохранены');
+  });
+
+  // ---------- Статистика ----------
+  function numEl(id, v) { $('#st_' + id).textContent = v; }
+
+  function unresolvedTable(items) {
+    if (!items || !items.length) return 'нет данных';
+    return '<table><tr><th>Запрос</th><th>Сайт</th><th>Когда</th><th></th></tr>' + items.map((q) =>
+      '<tr><td>' + esc(q.q) + '</td><td>' + esc(q.site || '—') + '</td><td>' + esc(new Date(q.ts).toLocaleString('ru-RU')) + '</td>' +
+      '<td>' + (q.chatId ? '<button class="linkbtn" data-chat="' + esc(q.chatId) + '">открыть →</button>' : '') + '</td></tr>'
+    ).join('') + '</table>';
+  }
+
+  function bindUnresolvedLinks(container) {
+    if (!container) return;
+    container.querySelectorAll('[data-chat]').forEach((b) => {
+      b.addEventListener('click', () => openChat(b.getAttribute('data-chat')));
+    });
+  }
+
+  async function loadStats() {
+    try {
+      const s = await api('/api/stats');
+      numEl('sites', s.totalSites);
+      numEl('active', s.activeChats);
+      numEl('online', s.onlineUsers);
+      numEl('chats', s.totalChats);
+      numEl('answers', s.answers);
+      numEl('unresolved', s.unresolved);
+      numEl('rating', s.ratings.count ? s.ratings.avg.toFixed(1) + ' (' + s.ratings.count + ')' : '—');
+      $('#st_popular').innerHTML = s.popular.length
+        ? '<table><tr><th>Запрос</th><th>Раз</th></tr>' + s.popular.map((p) => '<tr><td>' + esc(p.q) + '</td><td>' + p.count + '</td></tr>').join('') + '</table>'
+        : 'нет данных';
+      $('#st_unres_t').innerHTML = unresolvedTable(s.unresolvedQueries);
+      bindUnresolvedLinks($('#st_unres_t'));
+      $('#st_ai').textContent = 'ИИ: ' + s.ai.provider + ' · ' + s.ai.model + ' · ' + s.ai.endpoint + ' · отправитель ' + s.ai.from + (s.ai.instructionsSet ? ' · инструкции заданы' : ' · инструкции не заданы');
+    } catch (e) { toast('Не удалось загрузить статистику'); $('#st_ai').textContent = 'сервер не доступен'; offline(e && e.message); }
+  }
+
+  // ---------- Данные и инструкции ----------
+  async function loadData() {
+    try {
+      const kb = await api('/api/instructions');
+      kbItems = kb.items || [];
+      renderKb();
+      const s = await api('/api/stats');
+      const box = $('#dt_unres_t');
+      box.innerHTML = unresolvedTable(s.unresolvedQueries);
+      bindUnresolvedLinks(box);
+    } catch (e) { toast('Не удалось загрузить данные'); }
+  }
+
+  function renderKb() {
+    const box = $('#kb_list');
+    if (!kbItems.length) { box.innerHTML = '<div class="hint">Инструкций пока нет: сохраните инструкции в любом чате или добавьте вручную выше.</div>'; return; }
+    box.innerHTML = kbItems.map((i) =>
+      '<div class="instr-item">' +
+        '<div class="txt"><div class="t">' + esc(i.title) + '</div><div class="s">' + esc(i.text) + '</div>' +
+        '<div class="meta-line">' + esc(i.site || 'все сайты') + ' · ' + (i.source === 'chat' ? 'из чата' : 'вручную') + ' · ' + esc(new Date(i.ts).toLocaleString('ru-RU')) + '</div></div>' +
+        '<button class="danger" data-del="' + esc(i.id) + '">Удалить</button>' +
+      '</div>'
+    ).join('');
+    box.querySelectorAll('[data-del]').forEach((b) => {
+      b.addEventListener('click', async () => {
+        await api('/api/instructions?id=' + encodeURIComponent(b.getAttribute('data-del')), { method: 'DELETE' });
+        toast('Инструкция удалена');
+        loadData();
+      });
+    });
+  }
+
+  $('#btn_kb_add').addEventListener('click', async () => {
+    const title = $('#kb_title').value.trim();
+    const text = $('#kb_text').value.trim();
+    if (!title || !text) { toast('Заполните заголовок и текст'); return; }
+    await api('/api/instructions', { method: 'POST', body: JSON.stringify({ title, text, site: $('#kb_site').value.trim() }) });
+    $('#kb_title').value = ''; $('#kb_text').value = ''; $('#kb_site').value = '';
+    toast('Инструкция добавлена');
+    loadData();
+  });
+
+  // ---------- Настройки агента ----------
+  function renderSmtpStatus(c) {
+    const s = c.smtp && c.smtp.on;
+    const el = $('#smtp_status');
+    if (s) {
+      el.className = 'smtp-status on';
+      el.innerHTML = '<span class="dot"></span>SMTP: ' + esc(c.smtp.host) + ':' + c.smtp.port + ' (' + esc(c.smtp.user || 'без логина') + ')';
+      $('#smtp_help').textContent = '';
+    } else {
+      el.className = 'smtp-status off';
+      el.innerHTML = '<span class="dot"></span>SMTP выключен — письма в outbox';
+      $('#smtp_help').textContent = 'Демо-режим без SMTP: письма пишутся в server/data/email.log.ndjson. Заполните SMTP — и письма поедут реально (Яндекс/Gmail/Mail.ru: нужен пароль приложения).';
+    }
+  }
+
+  $('#cfg_smtp_provider').addEventListener('change', () => {
+    const p = SMTP_PRESETS[$('#cfg_smtp_provider').value];
+    if (!p) return;
+    $('#cfg_smtp_host').value = p.host;
+    $('#cfg_smtp_port').value = p.port;
+    $('#cfg_smtp_secure').checked = p.secure;
+  });
+
+  async function loadConfig() {
+    try {
+      const c = await api('/api/config');
+      $('#cfg_provider').value = c.provider || 'ollama';
+      $('#cfg_endpoint').value = c.endpoint || '';
+      $('#cfg_model').value = c.model || '';
+      $('#cfg_agentmode').value = (c.agentMode === 'tools' ? 'tools' : 'rag');
+      $('#cfg_ttl').value = (typeof c.ticketTtlDays === 'number' ? c.ticketTtlDays : 14);
+      $('#cfg_apikey').value = c.apiKey ? c.apiKey : '';
+      $('#cfg_apikey').placeholder = c.apiKey ? ('сохранён: ' + c.apiKey) : 'ключ не задан';
+      $('#cfg_from').value = c.from || '';
+      $('#cfg_askemail').checked = !!c.askEmail;
+      $('#cfg_operators').checked = c.operatorsEnabled !== false;
+      $('#cfg_fly').checked = c.flyEnabled !== false;
+      applyOperatorsUI();
+      $('#cfg_instr').value = c.instructions || '';
+      $('#cfg_qa').value = (c.qa || []).map((x) => [x.q, x.a, (x.keys || []).join(',')].filter(Boolean).join(' || ')).join('\n');
+      $('#cfg_qathr').value = (typeof c.qaThreshold === 'number' ? c.qaThreshold : 0.45).toFixed(2);
+      const sm = c.smtp || {};
+      $('#cfg_smtp_host').value = sm.host || '';
+      $('#cfg_smtp_port').value = sm.port || 465;
+      $('#cfg_smtp_user').value = sm.user || '';
+      $('#cfg_smtp_pass').value = '';
+      $('#cfg_smtp_from').value = c.from || '';
+      $('#cfg_smtp_secure').checked = sm.secure !== false;
+      $('#cfg_smtp_provider').value = '';
+      renderSmtpStatus(c || { smtp: { on: false } });
+      const dc = c.discord || {};
+      $('#cfg_discord').value = '';
+      $('#cfg_discord').placeholder = dc.on ? ('сохранён: ' + dc.webhook) : 'https://discord.com/api/webhooks/...';
+      $('#cfg_discord_user').value = dc.username || '';
+      $('#cfg_discord_avatar').value = dc.avatar || '';
+      $('#cfg_discord_insecure').checked = !!dc.insecure;
+      const dstat = $('#discord_status');
+      dstat.className = 'smtp-status ' + (dc.on ? 'on' : 'off');
+      dstat.innerHTML = '<span class="dot"></span>' + (dc.on ? 'Discord подключён' : 'Discord выключен');
+    } catch (e) { toast('Не удалось загрузить настройки'); }
+  }
+
+  function applyOperatorsUI() {
+    const on = $('#cfg_operators').checked;
+    const r = document.querySelector('.reply');
+    if (r) r.style.display = on ? '' : 'none';
+  }
+
+  $('#btn_savecfg').addEventListener('click', async () => {
+    const body = {
+      provider: $('#cfg_provider').value,
+      endpoint: $('#cfg_endpoint').value.trim(),
+      model: $('#cfg_model').value.trim(),
+      agentMode: $('#cfg_agentmode').value,
+      from: $('#cfg_from').value.trim(),
+      instructions: $('#cfg_instr').value,
+      askEmail: $('#cfg_askemail').checked,
+      operatorsEnabled: $('#cfg_operators').checked,
+      flyEnabled: $('#cfg_fly').checked,
+      ticketTtlDays: parseInt($('#cfg_ttl').value, 10) || 0
+    };
+    const k = $('#cfg_apikey').value.trim();
+    if (k) body.apiKey = k;
+    body.qa = $('#cfg_qa').value.split('\n').map((l) => l.split('||').map((s) => s.trim())).filter((p) => p.length >= 2 && p[0] && p[1]).map((p) => ({ q: p[0], a: p[1], keys: p.length > 2 && p[2] ? p[2].split(',').map((s) => s.trim()).filter(Boolean) : [] }));
+    const thr = parseFloat($('#cfg_qathr').value);
+    if (isFinite(thr)) body.qaThreshold = Math.min(0.99, Math.max(0, thr));
+    const dw = $('#cfg_discord').value.trim();
+    if (dw) body.discordWebhook = dw;
+    body.discordUsername = $('#cfg_discord_user').value.trim();
+    body.discordAvatar = $('#cfg_discord_avatar').value.trim();
+    body.discordInsecure = $('#cfg_discord_insecure').checked;
+    try {
+      const r = await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
+      $('#cfg_saved').textContent = r.persisted ? '✓ сохранено в config.json' : '✓ сохранено (в памяти, без файла)';
+      $('#cfg_apikey').value = '';
+      applyOperatorsUI();
+      setTimeout(() => ($('#cfg_saved').textContent = ''), 3000);
+    } catch (e) { toast('Не удалось сохранить настройки'); }
+  });
+
+  $('#btn_discord_off').addEventListener('click', async () => {
+    try {
+      await api('/api/config', { method: 'PUT', body: JSON.stringify({ discordWebhook: '' }) });
+      await loadConfig();
+      $('#discord_saved').textContent = '✓ Discord отключён';
+      setTimeout(() => { $('#discord_saved').textContent = ''; }, 3000);
+    } catch (e) { toast('Не удалось отключить Discord'); }
+  });
+
+  $('#btn_smtp_test').addEventListener('click', async () => {
+    const host = $('#cfg_smtp_host').value.trim();
+    const smtp = host ? {
+      host,
+      port: parseInt($('#cfg_smtp_port').value, 10) || 465,
+      secure: $('#cfg_smtp_secure').checked,
+      user: $('#cfg_smtp_user').value.trim(),
+      pass: $('#cfg_smtp_pass').value,
+      from: $('#cfg_smtp_from').value.trim() || $('#cfg_from').value.trim()
+    } : null;
+    try {
+      await api('/api/config', { method: 'PUT', body: JSON.stringify({ smtp }) });
+      const to = $('#cfg_smtp_user').value.trim() || $('#cfg_from').value.trim();
+      const r = await api('/api/smtp/test', { method: 'POST', body: JSON.stringify({ to }) });
+      $('#smtp_saved').textContent = r.mode === 'smtp'
+        ? ('✓ тест отправлен на ' + r.to + ' (режим SMTP). Проверьте входящие')
+        : ('письмо записано в outbox для ' + r.to + ' — заполните SMTP, чтобы отправлять реально');
+      setTimeout(() => ($('#smtp_saved').textContent = ''), 5000);
+    } catch (e) { toast('Ошибка теста: ' + e.message); }
+  });
+
+// ---------- Сайт ----------
+  const newsState = { id: null, page: 1 };
+  let siteState = { sections: null, secId: null };
+
+  function lpad(v) { return String(v).padStart(2, '0'); }
+  function fmtTs(ts) {
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('ru-RU') + ' ' + lpad(d.getHours()) + ':' + lpad(d.getMinutes());
+  }
+
+  async function loadSite() {
+    try {
+      const [ov, wing] = await Promise.all([api('/api/site/overview'), api('/api/site/widget/online')]);
+      $('#sv_name').textContent = ov.siteName || '—';
+      $('#sv_online').textContent = ov.online.total;
+      $('#sv_widget').textContent = wing.total;
+      $('#sv_news_total').textContent = ov.news.total;
+      $('#sv_news_pub').textContent = ov.news.published;
+      $('#sv_news_feat').textContent = ov.news.featured;
+      $('#sv_pages').textContent = ov.sections.pages;
+      $('#sv_sections').textContent = ov.sections.total;
+      $('#sv_visits').textContent = ov.visits ? ov.visits.total : '–';
+      const vis = ov.online.users || [];
+      $('#sv_visitors').innerHTML = vis.length
+        ? vis.map((u) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(u.page || '—') + '</div><div class="s">' + esc(u.ip || '') + ' · ' + fmtTs(u.ts) + '</div></div></div>').join('')
+        : '<div class="hint">Нет активных визитёров прямо сейчас</div>';
+      const we = wing.chats || [];
+      $('#sv_wchats').innerHTML = we.length
+        ? we.map((c) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(c.siteName || 'Чат') + '</div><div class="s">' + esc(String(c.page || '').slice(0, 80)) + ' · ' + esc(new Date(c.updatedAt).toLocaleTimeString('ru-RU')) + '</div></div></div>').join('')
+        : '<div class="hint">Нет активных диалогов виджета</div>';
+    } catch (e) { toast('Сайт: ' + (e && e.message)); }
+  }
+
+  async function loadSections() {
+    try {
+      const page = $('#sv_page').value;
+      const r = await api('/api/site/sections' + (page ? '?page=' + encodeURIComponent(page) : ''));
+      if (!siteState.pages || page === '') {
+        const sel = $('#sv_page');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">— все страницы —</option>' + (r.pages || []).map((p) => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+        if (prev && prev !== page) sel.value = prev;
+      }
+      const groups = r.sections || {};
+      const box = $('#sv_sectlist');
+      if (!Object.keys(groups).length) { box.innerHTML = '<div class="hint">Разделы не найдены</div>'; return; }
+      let html = '';
+      Object.keys(groups).forEach((pg) => {
+        html += '<div class="databox"><h4>' + esc(pg) + ' <span class="tag">' + groups[pg].length + '</span></h4>';
+        groups[pg].forEach((s) => {
+          html += '<div class="instr-item"><div class="txt"><div class="t">' + esc(s.section_key) + ' <span class="tag">' + esc(s.title || '') + '</span></div>' +
+            '<div class="s">' + (s.is_active ? '<span class="ok">активен</span>' : '<span class="err">выключен</span>') +
+            ' · порядок ' + (s.sort_order || 0) + ' · ' + esc(s.updated_at || '') + '</div></div>' +
+            '<button class="linkbtn" onclick="editSection(' + s.id + ')">редактировать</button></div>';
+        });
+        html += '</div>';
+      });
+      box.innerHTML = html;
+    } catch (e) { toast('Разделы: ' + (e && e.message)); }
+  }
+
+  $('#sv_page').addEventListener('change', () => { siteState.pages = null; loadSections(); });
+
+  window.editSection = async function (id) {
+    try {
+      const r = await api('/api/site/sections/' + id);
+      const s = r.item;
+      siteState.secId = id;
+      $('#sv_ed_label').textContent = s.page_key + '.' + s.section_key;
+      $('#sv_ed_title').value = s.title || '';
+      $('#sv_ed_desc').value = s.description || '';
+      $('#sv_ed_active').checked = s.is_active !== false;
+      $('#sv_ed_order').value = s.sort_order || 0;
+      $('#sv_ed_meta_title').value = s.meta_title || '';
+      $('#sv_ed_meta_desc').value = s.meta_description || '';
+      const map = {};
+      (s.content || []).forEach((it) => { map[it.key] = it; });
+      const box = $('#sv_ed_content');
+      box.innerHTML = '';
+      Object.keys(map).forEach((k) => {
+        const it = map[k];
+        const ru = typeof it.ru !== 'undefined' ? it.ru : it.value;
+        box.insertAdjacentHTML('beforeend',
+          '<div class="mlrow"><div class="mlhead">' + esc(k) + '</div><div class="mlgrid">' +
+          '<div><label>RU</label><textarea data-k="' + esc(k) + '" data-l="ru">' + esc(ru) + '</textarea></div>' +
+          '<div><label>KK</label><textarea data-k="' + esc(k) + '" data-l="kk">' + esc(it.kk || '') + '</textarea></div>' +
+          '<div><label>EN</label><textarea data-k="' + esc(k) + '" data-l="en">' + esc(it.en || '') + '</textarea></div>' +
+          '</div></div>');
+      });
+      $('#sv_editor').style.display = 'block';
+      $('#sv_editor').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) { toast('Секция: ' + (e && e.message)); }
+  };
+
+  window.closeSectionEditor = function () {
+    $('#sv_editor').style.display = 'none';
+    siteState.secId = null;
+  };
+
+  window.saveSection = async function () {
+    if (!siteState.secId) { toast('Раздел не выбран'); return; }
+    const content = {};
+    $('#sv_ed_content').querySelectorAll('textarea[data-k]').forEach((t) => {
+      const k = t.getAttribute('data-k');
+      const l = t.getAttribute('data-l');
+      content[k] = content[k] || {};
+      content[k][l] = t.value;
+    });
+    const body = {
+      title: $('#sv_ed_title').value,
+      description: $('#sv_ed_desc').value,
+      is_active: $('#sv_ed_active').checked,
+      sort_order: parseInt($('#sv_ed_order').value || '0', 10) || 0,
+      meta_title: $('#sv_ed_meta_title').value,
+      meta_description: $('#sv_ed_meta_desc').value,
+      content
+    };
+    try {
+      await api('/api/site/sections/' + siteState.secId, { method: 'PUT', body: JSON.stringify(body) });
+      toast('Раздел сохранён, кэш сайта очищен');
+      closeSectionEditor();
+      loadSections();
+      loadSite();
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  };
+
+  $('#btn_site_refresh').addEventListener('click', () => { loadSite(); loadSections(); });
+  $('#btn_site_cache').addEventListener('click', async () => {
+    try {
+      const r = await api('/api/site/cache/clear', { method: 'POST', body: '{}' });
+      toast('Кэш сайта очищен: ' + r.cleared_at);
+      loadSite(); loadSections();
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  });
+
+  // ---------- Новости ----------
+  function nfield(n, f, lang) { return (n && n[f] && typeof n[f] === 'object') ? (n[f][lang] || '') : ((n && n[f]) || ''); }
+
+  async function loadNews(page) {
+    newsState.page = page || 1;
+    try {
+      const r = await api('/api/site/news?per_page=15&page=' + newsState.page);
+      const items = r.items || [];
+      $('#n_list').innerHTML = items.length ? items.map((n) => {
+        const t = nfield(n, 'title', 'ru') || ('#' + n.id);
+        return '<div class="instr-item"><div class="txt"><div class="t">' + esc(t) + ' <span class="tag">#' + n.id + ' · ' + esc(n.slug || '') + '</span></div>' +
+          '<div class="s">' + (n.is_published ? '<span class="ok">опубликовано</span>' : '<span class="warn">черновик</span>') +
+          (n.is_featured ? ' · <span class="tag">избранное</span>' : '') +
+          (n.is_multilang ? ' · <span class="tag">мультиязык</span>' : '') + ' · ' + esc(n.published_at || '—') + '</div></div>' +
+          '<button class="linkbtn" onclick="editNews(' + n.id + ')">изменить</button></div>';
+      }).join('') : '<div class="hint">Новостей нет — нажмите «Новая новость»</div>';
+      const pg = r.pagination || {};
+      $('#n_pages').textContent = pg.total ? ('всего ' + pg.total + ' · стр. ' + pg.current_page + ' / ' + pg.last_page) : '';
+    } catch (e) { toast('Новости: ' + (e && e.message)); }
+  }
+
+  window.newNews = function () { fillNewsForm(null); };
+
+  window.editNews = async function (id) {
+    try {
+      const r = await api('/api/site/news/' + id);
+      fillNewsForm(r.item);
+    } catch (e) { toast('Новости: ' + (e && e.message)); }
+  };
+
+  function fillNewsForm(n) {
+    newsState.id = n ? n.id : null;
+    $('#n_title_ru').value = nfield(n, 'title', 'ru');
+    $('#n_title_kk').value = nfield(n, 'title', 'kk');
+    $('#n_title_en').value = nfield(n, 'title', 'en');
+    $('#n_exc_ru').value = nfield(n, 'excerpt', 'ru');
+    $('#n_exc_kk').value = nfield(n, 'excerpt', 'kk');
+    $('#n_exc_en').value = nfield(n, 'excerpt', 'en');
+    $('#n_cnt_ru').value = nfield(n, 'content', 'ru');
+    $('#n_cnt_kk').value = nfield(n, 'content', 'kk');
+    $('#n_cnt_en').value = nfield(n, 'content', 'en');
+    $('#n_image').value = (n && n.image) || '';
+    $('#n_gallery').value = (n && n.gallery && n.gallery.length ? n.gallery.join('\n') : '');
+    $('#n_pub').checked = !!(n && n.is_published);
+    $('#n_feat').checked = !!(n && n.is_featured);
+    $('#n_regenslug').checked = false;
+    $('#n_date').value = (n && n.published_at) ? n.published_at.replace(' ', 'T') : '';
+    $('#n_form_btn').textContent = n ? 'Сохранить изменения' : 'Создать новость';
+    $('#n_del').style.display = n ? 'inline-block' : 'none';
+    $('#n_form').style.display = 'block';
+    $('#n_form').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  window.cancelNewsForm = function () { $('#n_form').style.display = 'none'; newsState.id = null; };
+
+  window.saveNews = async function () {
+    const body = {
+      title: { ru: $('#n_title_ru').value, kk: $('#n_title_kk').value, en: $('#n_title_en').value },
+      excerpt: { ru: $('#n_exc_ru').value, kk: $('#n_exc_kk').value, en: $('#n_exc_en').value },
+      content: { ru: $('#n_cnt_ru').value, kk: $('#n_cnt_kk').value, en: $('#n_cnt_en').value },
+      image: $('#n_image').value.trim() || '',
+      gallery: $('#n_gallery').value.split('\n').map((s) => s.trim()).filter(Boolean),
+      is_published: $('#n_pub').checked,
+      is_featured: $('#n_feat').checked,
+      published_at: $('#n_date').value ? $('#n_date').value.replace('T', ' ') : '',
+      regenerate_slug: $('#n_regenslug').checked
+    };
+    try {
+      const url = newsState.id ? ('/api/site/news/' + newsState.id) : '/api/site/news';
+      const method = newsState.id ? 'PUT' : 'POST';
+      await api(url, { method, body: JSON.stringify(body) });
+      toast('Новость сохранена');
+      cancelNewsForm();
+      loadNews(newsState.page);
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  };
+
+  window.deleteNews = async function () {
+    if (!newsState.id) return;
+    if (!confirm('Удалить новость #' + newsState.id + '?')) return;
+    try {
+      await api('/api/site/news/' + newsState.id, { method: 'DELETE' });
+      toast('Новость удалена');
+      cancelNewsForm();
+      loadNews(1);
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  };
+
+  refreshList();
+  setInterval(refreshList, 3000);
+  setInterval(() => {
+    if (currentId && $('#view-chats').classList.contains('on') && !document.hidden) loadDetail(true);
+  }, 3000);
+  setInterval(() => { if ($('#view-stats').classList.contains('on')) loadStats(); }, 5000);
+  setInterval(() => { if ($('#view-data').classList.contains('on') && !document.hidden) loadData(); }, 7000);
+  setInterval(() => { if ($('#view-site').classList.contains('on') && $('#sv_editor').style.display !== 'block') loadSite(); }, 15000);
+})();
+</script>
+<script>
+(function () {
+  var soon = function (fn) { (window.requestAnimationFrame || function (f) { setTimeout(f, 16); })(fn); };
+
+  // Плавный счётчик цифр в карточках статистики.
+  function animateNum(el, to) {
+    var from = parseFloat(el.getAttribute('data-val') || '0');
+    if (isNaN(from) || isNaN(to) || el.textContent.indexOf('%') > -1 || String(to) === String(from)) {
+      el.removeAttribute('data-val');
+      return;
+    }
+    var start = null, dur = 550;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (to - from) * eased);
+      if (p < 1) soon(step); else { el.textContent = to; el.style.transform = 'scale(1.08)'; soon(function () { el.style.transform = ''; }); }
+    }
+    soon(step);
+  }
+  function hookCards() {
+    Array.prototype.forEach.call(document.querySelectorAll('.cards'), function (cards) {
+      if (cards.getAttribute('data-aw-hooked')) return;
+      cards.setAttribute('data-aw-hooked', '1');
+      new MutationObserver(function () {
+        Array.prototype.forEach.call(cards.querySelectorAll('.num'), function (el) {
+          var t = parseFloat((el.textContent || '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'));
+          if (!isNaN(t)) { animateNum(el, t); el.setAttribute('data-val', String(t)); }
+        });
+      }).observe(cards, { childList: true, subtree: true, characterData: true });
+    });
+  }
+  hookCards();
+  if (window.MutationObserver) {
+    var docObserver = new MutationObserver(function (muts) {
+      var saw = false;
+      muts.forEach(function (m) { if (m.addedNodes && m.addedNodes.length) saw = true; });
+      if (saw) hookCards();
+    });
+    docObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Тосты: плавное появление и автоскрытие с анимацией.
+  var origToast = window.toast;
+  if (typeof origToast === 'function') {
+    window.toast = function (msg) {
+      var t = document.getElementById('toast');
+      if (!t) { origToast(msg); return; }
+      t.style.animation = 'none'; void t.offsetWidth;
+      t.style.animation = '';
+      origToast(msg);
+    };
+  }
+})();
+</script>
+</body>
+</html>
