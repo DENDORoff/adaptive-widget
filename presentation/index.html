@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Widget — презентация</title>
+<style>
+:root{--c1:#818cf8;--c2:#a855f7;--bg:#0b1120;--text:#e2e8f0;--sub:#94a3b8;--line:rgba(148,163,184,.16)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:system-ui,'Segoe UI',sans-serif;background:radial-gradient(1200px 800px at 12% -10%,rgba(129,140,248,.16),transparent 60%),radial-gradient(1000px 700px at 110% 110%,rgba(168,85,247,.14),transparent 60%),var(--bg);color:var(--text);overflow:hidden}
+.slide{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:60px;animation:in .5s cubic-bezier(.22,1,.36,1)}
+.slide.on{display:flex}
+@keyframes in{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.box{max-width:960px;width:100%}
+.kicker{display:inline-block;padding:4px 12px;border-radius:100px;font-size:13px;color:#c7d2fe;background:rgba(129,140,248,.14);border:1px solid rgba(129,140,248,.25);margin-bottom:18px}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.12;font-weight:800}
+h1 em{font-style:normal;background:linear-gradient(120deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:clamp(26px,4vw,42px);font-weight:800;margin-bottom:14px}
+h2 em{font-style:normal;background:linear-gradient(120deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+p.lead{font-size:17px;color:var(--sub);max-width:760px;margin-bottom:26px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.tile{background:rgba(30,41,59,.55);border:1px solid var(--line);border-radius:16px;padding:20px}
+.tile h4{font-size:15px;margin-bottom:6px}
+.tile p{font-size:13px;color:var(--sub)}
+.tile b{color:var(--text)}
+pre.code{background:rgba(30,41,59,.7);border:1px solid var(--line);border-radius:14px;padding:18px;overflow-x:auto;font-size:13px;line-height:1.7;color:#c7d2fe}
+code{font-family:ui-monospace,Consolas,monospace;font-size:inherit}
+.arrow{position:fixed;bottom:22px;right:26px;color:var(--sub);font-size:13px;letter-spacing:.4px}
+.arrow b{color:#c7d2fe}
+.pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2));transition:width .4s;z-index:5}
+.note{font-size:12px;color:var(--sub);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="pbar" id="pbar"></div>
+
+<div class="slide on"><div class="box">
+  <div class="kicker">ПРОДУКТ</div>
+  <h1>Adaptive Widget —<br><em>ИИ-поддержка как часть вашего сайта</em></h1>
+  <p class="lead">Чат-виджет, который сам подстраивается под дизайн сайта, отвечает по данным
+  страницы, переводит на оператора и присылает уведомления — в одном файле и без волшебства.</p>
+  <div class="grid g4">
+    <div class="tile"><h4>🎨 Автодизайн</h4><p>Считывает палитру и шрифт сайта</p></div>
+    <div class="tile"><h4>🤖 ИИ-агент</h4><p>Ответы на основе текста сайта</p></div>
+    <div class="tile"><h4>🧑‍💻 Операторы</h4><p>Handoff + уведомления</p></div>
+    <div class="tile"><h4>📊 Админка</h4><p>Чаты, статистика, настройки</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">ПРОБЛЕМА</div>
+  <h2>Клиенты уходят, когда <em>не получают ответ</em></h2>
+  <p class="lead">Сайты теряют обращения, потому что обратная связь спрятана в формах и письмах:
+  вопрос сгорает, менеджер отвечает через день, а дизайн чужих виджетов выбивается из стиля.</p>
+  <div class="grid g2">
+    <div class="tile"><h4>❗ Обычные виджеты</h4><p>Не совпадают с брендом · отвечают шаблонами · нет статистики · вопросы теряются.</p></div>
+    <div class="tile"><h4>✅ Наше решение</h4><p>Дизайн = ваш сайт · ответы = ваши данные · оператор рядом · всё в админке.</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">РЕШЕНИЕ</div>
+  <h2>Один скрипт + один сервер</h2>
+  <div class="grid g4">
+    <div class="tile"><b>1</b><h4 style="margin-top:4px">Страница</h4><p>виджет читает текст, заголовки, контакты, alt — и красится под дизайн</p></div>
+    <div class="tile"><b>2</b><h4 style="margin-top:4px">Backend</h4><p>Node.js без npm: агент, чаты, QA, уведомления, «Муха»</p></div>
+    <div class="tile"><b>3</b><h4 style="margin-top:4px">ИИ-модель</h4><p>Ollama локально или любой OpenAI-совместимый API</p></div>
+    <div class="tile"><b>4</b><h4 style="margin-top:4px">Вы</h4><p>админка на /admin: оператор, настройки, статистика</p></div>
+  </div>
+  <div class="note">CORS открыт — работает с любого домена. SSE стримит сообщения в реальном времени.</div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">ДЕМО</div>
+  <h2>Живой пример на сайте колледжа</h2>
+  <p class="lead">Виджет отвечает про специальности, поступление и документы — данные берутся прямо
+  с сайта. Тёмная/светлая тема и цвета кнопок меняются следом за дизайном страницы.</p>
+  <pre class="code"><code>window.ADAPTIVE_WIDGET = {
+  siteName: 'Высший колледж электроники и коммуникации',
+  backend: 'http://127.0.0.1:3000/api',
+  provider: 'auto', model: 'qwen2.5:3b',
+  teaser: 'Спросите о поступлении, специальностях или документах'
+};</code></pre>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">ВОЗМОЖНОСТИ</div>
+  <h2>Что закрывает продукт</h2>
+  <div class="grid g2">
+    <div class="tile"><h4>🤝 Операторы и handoff</h4><p>Кнопка «Позвать оператора», статусы чата, ответ из админки, письмо клиенту при офлайне.</p></div>
+    <div class="tile"><h4>🔔 Уведомления</h4><p>SMTP (Яндекс/Gmail/Mail.ru) и Discord: новый чат, запрос оператора, оценка, нерешённый вопрос.</p></div>
+    <div class="tile"><h4>📈 Статистика</h4><p>Активные чаты, нерешённые, средняя оценка 1–5, популярные запросы.</p></div>
+    <div class="tile"><h4>🧪 Экспериментальная «Муха»</h4><p>Чат по коннектому мозга мухи и 3D-нейроны из NeuPrint — файл нейромаркетинга.</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">ТЕХНОЛОГИИ</div>
+  <h2>Стек</h2>
+  <div class="grid g4">
+    <div class="tile"><h4>Виджет</h4><p>Vanilla JS · Shadow DOM · ноль зависимостей</p></div>
+    <div class="tile"><h4>Backend</h4><p>Node.js (http, ws-free SSE) · JSON Store · без npm install</p></div>
+    <div class="tile"><h4>ИИ</h4><p>OpenAI-совместимый API: Ollama, OpenAI, OpenRouter, Groq, Mistral, custom</p></div>
+    <div class="tile"><h4>Интеграции</h4><p>SMTP, Discord, NeuPrint (three.js r128), Laravel API</p></div>
+  </div>
+  <div class="note">Тесты: jsdom (логика) + puppeteer-core (вьювер, анимации, флаги). Запуск: npm test.</div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">БЕЗОПАСНОСТЬ</div>
+  <h2>Приватность и контроль</h2>
+  <div class="grid g2">
+    <div class="tile"><h4>Данные на вашем сервере</h4><p>Чаты и знания хранятся локально в server/data — никуда не уходят.</p></div>
+    <div class="tile"><h4>Выбираете модель</h4><p>Ollama — всё локально и бесплатно; облачные модели — только по вашей воле.</p></div>
+    <div class="tile"><h4>Токен админки</h4><p>Панель оператора закрыта паролем из config.json, можно переиздавать.</p></div>
+    <div class="tile"><h4>XSS-защита</h4><p>Весь текст экранируется, контент сайта — в знания, а не в HTML.</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">МЕТРИКИ</div>
+  <h2>Нацеленность на результат</h2>
+  <div class="grid g4">
+    <div class="tile"><h4>⏱ Первый ответ</h4><p>менее 1 сек из QA-базы · 2–4 сек из ИИ</p></div>
+    <div class="tile"><h4>➡ Handoff</h4><p>оператор видит историю и отвечает в реальном времени</p></div>
+    <div class="tile"><h4>⭐ Оценка</h4><p>клиент ставит 1–5 после диалога</p></div>
+    <div class="tile"><h4>📋 Нерешённые</h4><p>каждый нерешённый вопрос виден в админке — база, а не потеря</p></div>
+  </div>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">ВНЕДРЕНИЕ</div>
+  <h2>Дорожная карта</h2>
+  <div class="grid g4">
+    <div class="tile"><h4>Этап 1</h4><p>Запуск backend + подключение виджета</p></div>
+    <div class="tile"><h4>Этап 2</h4><p>Заполнение FAQ и инструкций, выбор модели</p></div>
+    <div class="tile"><h4>Этап 3</h4><p>Операторы: SMTP/Discord, дежурства</p></div>
+    <div class="tile"><h4>Этап 4</h4><p>А/Б: автооткрытие, триггеры, «Муха»</p></div>
+  </div>
+  <p class="note" style="margin-top:26px">Подключение занимает 5 минут: запуск сервера + два тега. Всё остальное — в админке, без кода.</p>
+</div></div>
+
+<div class="slide"><div class="box">
+  <div class="kicker">ИДИТИ</div>
+  <h1>Попробуйте — это <em>5 минут</em></h1>
+  <p class="lead">Сервер, виджет, админка, тесты — всё в open-source репозитории.</p>
+  <div class="grid g2">
+    <div class="tile"><h4>Start</h4><p>cd server &amp;&amp; node server.js → http://127.0.0.1:3000</p></div>
+    <div class="tile"><h4>Админка</h4><p>тот же порт, путь /admin</p></div>
+  </div>
+  <div class="note" style="margin-top:24px">© Adaptive Widget · DENDORoff · 2026</div>
+</div></div>
+
+<div class="arrow">← → листать · <b id="idx">1</b>/11</div>
+<div class="pbar" id="pbar" style="position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#818cf8,#a855f7)"></div>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var idxEl=document.getElementById('idx');var idx=0;
+  function show(n){
+    idx=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,i){s.classList.toggle('on',i===idx)});
+    idxEl.textContent=idx+1;
+    document.getElementById('pbar').style.width=((idx+1)/slides.length*100)+'%';
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){show(idx+1);}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){show(idx-1);}
+    if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1);
+  });
+  document.addEventListener('click',function(e){if(e.target.closest('.slide'))show(idx+1);});
+  var t0=null,startX=0;
+  document.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;},false);
+  document.addEventListener('touchend',function(e){if(Math.abs(e.changedTouches[0].clientX-startX)>60){show(idx+(startX>e.changedTouches[0].clientX?1:-1));}},false);
+  show(0);
+})();
+</script>
+</body>
+</html>

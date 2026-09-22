@@ -1,0 +1,12 @@
+# данные и настройки сервера поддержки (создаются при первом запуске)
+server/data/
+server/config.json
+
+# окружение
+node_modules/
+.env
+*.log
+
+# OS
+Thumbs.db
+.DS_Store

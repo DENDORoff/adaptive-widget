@@ -1,0 +1,12 @@
+{
+  "name": "adaptive-widget-server",
+  "version": "0.1.0",
+  "description": "Backend поддержки для Adaptive Widget. Node.js builtin — без npm-зависимостей.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node ../tests/server.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}

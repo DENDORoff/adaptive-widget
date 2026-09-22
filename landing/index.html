@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Widget — ИИ-поддержка, которая выглядит как часть вашего сайта</title>
+<style>
+:root{--c1:#818cf8;--c2:#a855f7;--bg:#0b1120;--bg2:#0f172a;--text:#e2e8f0;--sub:#94a3b8;--line:rgba(148,163,184,.14);--glass:rgba(30,41,59,.55)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);opacity:.15;pointer-events:none;z-index:0}
+body::before{width:700px;height:700px;background:var(--c1);top:-240px;left:-180px}
+body::after{width:650px;height:650px;background:var(--c2);bottom:-260px;right:-200px}
+a{color:var(--c1);text-decoration:none}
+.container{max-width:980px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+header{padding:40px 0 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;font-weight:700;background:linear-gradient(90deg,#c7d2fe,#ddd6fe);-webkit-background-clip:text;background-clip:text;color:transparent}
+header nav{margin-left:auto;display:flex;gap:18px}
+header nav a{font-size:14px;color:var(--sub);transition:color .2s}
+header nav a:hover{color:var(--text)}
+.hero{text-align:center;padding:72px 0 86px}
+.badge{display:inline-block;padding:4px 14px;border-radius:100px;font-size:12px;color:#c7d2fe;background:rgba(129,140,248,.14);border:1px solid rgba(129,140,248,.24);margin-bottom:20px}
+.hero h2{font-size:clamp(32px,6vw,54px);line-height:1.15;font-weight:800;margin-bottom:18px}
+.hero h2 strong{background:linear-gradient(120deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{font-size:18px;color:var(--sub);max-width:680px;margin:0 auto 32px}
+.btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btns a{padding:12px 26px;border-radius:12px;font-size:15px;font-weight:600;transition:transform .18s,box-shadow .2s,background .25s}
+.btns a:hover{transform:translateY(-2px)}
+.btns .primary{background:linear-gradient(120deg,var(--c1),var(--c2));color:#fff;box-shadow:0 8px 24px rgba(129,140,248,.45)}
+.btns .ghost{border:1px solid var(--line);color:var(--text)}
+.btns .ghost:hover{border-color:var(--c1);box-shadow:0 0 0 1px rgba(129,140,248,.25)}
+section{padding:84px 0}
+h3{font-size:clamp(24px,4vw,36px);font-weight:700;margin-bottom:12px;text-align:center}
+.sub{text-align:center;color:var(--sub);max-width:620px;margin:0 auto 48px}
+.grid{display:grid;gap:18px}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:28px 24px;backdrop-filter:blur(8px);transition:border-color .25s,transform .25s}
+.card:hover{border-color:rgba(129,140,248,.4);transform:translateY(-4px)}
+.card .ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;background:linear-gradient(135deg,rgba(129,140,248,.18),rgba(168,85,247,.18));font-size:22px}
+.card h4{margin-bottom:8px;font-size:16px}
+.card p{font-size:14px;color:var(--sub)}
+.steps{counter-reset:step}
+.steps .step{display:flex;gap:24px;align-items:flex-start;margin-bottom:48px}
+.steps .step::before{counter-increment:step;content:counter(step);flex:0 0 52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff}
+.step .body h4{margin-bottom:6px}
+.step .body p{color:var(--sub);font-size:14px}
+pre.code{background:rgba(30,41,59,.6);border:1px solid var(--line);border-radius:14px;padding:18px 20px;overflow-x:auto;font-size:13px;line-height:1.7;color:#c7d2fe}
+code{font-family:'Cascadia Code','Fira Code',ui-monospace,Consolas,monospace;font-size:inherit}
+.logo-strip{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:42px;opacity:.6;font-size:13px;color:var(--sub)}
+.logo-strip span{display:inline-flex;align-items:center;gap:6px}
+footer{padding:52px 0;border-top:1px solid var(--line);color:var(--sub);font-size:13px;text-align:center}
+@media(max-width:600px){.steps .step{flex-direction:column;gap:12px}.steps .step::before{width:42px;height:42px;font-size:18px}}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Adaptive Widget</h1>
+    <nav>
+      <a href="#features">Возможности</a>
+      <a href="#how">Как подключить</a>
+      <a href="#code">Код</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="badge">ИИ-поддержка нового поколения</div>
+    <h2>Виджет поддержки, который <strong>выглядит как часть вашего сайта</strong></h2>
+    <p>Автоматически подстраивается под дизайн, отвечает на основе данных сайта, передаёт оператору, отправляет уведомления — и всё это в одном файле.</p>
+    <div class="btns">
+      <a href="#code" class="primary">Подключить за 5 минут</a>
+      <a href="#how" class="ghost">Как это работает</a>
+    </div>
+  </section>
+
+  <section id="features">
+    <h3>Что умеет</h3>
+    <p class="sub">Нейросети, операторы, уведомления, статистика — всё на месте</p>
+    <div class="grid grid-3">
+      <div class="card"><div class="ico">🎨</div><h4>Свой дизайн</h4><p>Считывает цвета, шрифт, тёмную тему — перекрашивается автоматически. Внешне неотличим от вашего интерфейса.</p></div>
+      <div class="card"><div class="ico">🤖</div><h4>ИИ-агент</h4><p>Отвечает на вопросы, используя текст страницы, FAQ-базу и документы. Работает на Ollama, OpenAI, OpenRouter, Groq и других моделях.</p></div>
+      <div class="card"><div class="ico">🧑‍💻</div><h4>Операторы</h4><p>Клиент нажал «Позвать оператора» — вы получаете уведомление (email/Discord) и отвечаете в админке в реальном времени.</p></div>
+      <div class="card"><div class="ico">📊</div><h4>Статистика</h4><p>Сколько чатов, средняя оценка, популярные вопросы, нерешённые — всё в реальном времени в админке.</p></div>
+      <div class="card"><div class="ico">🔑</div><h4>Без кода</h4><p>Виджет — один скрипт. Backend — один файл Node.js (без npm-зависимостей). Админка — встроена в сервер.</p></div>
+      <div class="card"><div class="ico">🧪</div><h4>QA без нейросети</h4><p>Работает даже без модели ИИ:问答-база с пользовательскими ответами, fuzzy-поиск по ключевым словам.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h3>Как подключить</h3>
+    <p class="sub">Три шага — и виджет работает на вашем сайте</p>
+    <div class="steps">
+      <div class="step"><div class="body"><h4>Запустите сервер поддержки</h4><p>Один файл, Node.js 18+, без npm-зависимостей. Сервер обрабатывает чаты, ИИ-агента, уведомления, «Муху». В комплекте — админка для операторов.</p>
+      <pre class="code"><code>cd server && node server.js</code></pre></div></div>
+      <div class="step"><div class="body"><h4>Добавьте два тега на любую страницу</h4><p>Скрипт автоматически подбирает дизайн под ваш сайт и появляется в правом нижнем углу.</p>
+      <pre class="code"><code>&lt;script&gt;
+window.ADAPTIVE_WIDGET = {
+  siteName: 'Название сайта',
+  backend: 'http://127.0.0.1:3000/api',
+  provider: 'auto',
+  model: 'qwen2.5:3b'
+};
+&lt;/script&gt;
+&lt;script src="adaptive-widget.js"&gt;&lt;/script&gt;</code></pre></div></div>
+      <div class="step"><div class="body"><h4>Настройте в админке</h4><p>Откройте <code>/admin</code> — настройте ИИ-модель, добавьте FAQ, настройте SMTP/Discord для уведомлений, управляйте операторами и флагами.</p></div></div>
+    </div>
+  </section>
+
+  <section id="code">
+    <h3>Стек</h3>
+    <p class="sub">Минимум зависимостей — максимум возможностей</p>
+    <div class="grid grid-3" style="max-width:720px;margin:0 auto">
+      <div class="card" style="text-align:center"><h4>Виджет</h4><p>JS, Shadow DOM<br>Ноль зависимостей</p></div>
+      <div class="card" style="text-align:center"><h4>Backend</h4><p>Node.js (builtin)<br>Без npm install</p></div>
+      <div class="card" style="text-align:center"><h4>ИИ</h4><p>Ollama / OpenAI / Groq<br>OpenRouter / Mistral</p></div>
+    </div>
+    <div class="logo-strip">
+      <span>• админка</span>
+      <span>• Discord</span>
+      <span>• SMTP</span>
+      <span>• SSE (стрим)</span>
+      <span>• QA-база</span>
+      <span>• NeuPrint</span>
+      <span>• 3D-нейроны</span>
+      <span>• Shadow DOM</span>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h3>FAQ</h3>
+    <div class="grid" style="max-width:720px;margin:0 auto">
+      <div class="card"><h4>Сколько стоит?</h4><p>Виджет и сервер — бесплатно. Вы платите только за модель (Ollama — бесплатно локально; OpenAI — ~$0.002 за вопрос).</p></div>
+      <div class="card"><h4>Можно ли без нейросети?</h4><p>Да. QA-база и передача оператору работают без модели. ИИ просто отключается из настроек.</p></div>
+      <div class="card"><h4>Можно ли в iframe / на другой домен?</h4><p>Да. Виджет встраивается как скрипт с любого домена, backend — CORS открыт.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Adaptive Widget · <a href="https://github.com/DENDORoff">DENDORoff</a> · v0.1.0
+  </footer>
+</div>
+
+</body>
+</html>
