@@ -226,6 +226,28 @@
 
   function plausible(c) { return /^#[0-9a-f]{3,8}$/i.test(c); }
 
+  var GENERIC_FONTS = { 'system-ui': 1, 'ui-sans-serif': 1, 'ui-serif': 1, 'ui-monospace': 1, 'sans-serif': 1, 'serif': 1, 'monospace': 1, 'cursive': 1, 'fantasy': 1, 'initial': 1, 'inherit': 1, 'unset': 1, 'revert': 1, 'revert-layer': 1, 'auto': 1 };
+  var GENERIC_FONT_NAMES = { 'arial': 1, 'helvetica': 1, 'verdana': 1, 'tahoma': 1, 'times new roman': 1, 'courier new': 1 };
+
+  // Подбираем шрифт из стека шрифтов страницы, пропуская системные/обобщённые.
+  function pickPageFont() {
+    var stack = String(getComputedStyle(document.body).fontFamily || 'system-ui').replace(/["']/g, '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    for (var i = 0; i < stack.length; i++) {
+      var name = stack[i];
+      if (name && !GENERIC_FONTS[name.toLowerCase()] && !GENERIC_FONT_NAMES[name.toLowerCase()]) return name;
+    }
+    return stack[0] || 'system-ui';
+  }
+
+  // Масштаб текста виджета относительно базового шрифта страницы (адаптация по шрифтам).
+  function computeFontAdapt() {
+    try {
+      var rootFs = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      var bodyFs = parseFloat(getComputedStyle(document.body).fontSize) || rootFs;
+      return Math.min(1.35, Math.max(0.8, bodyFs / 16));
+    } catch (e) { return 1; }
+  }
+
   function extractStyle() {
     PALETTE.found = false;
     var rootEl = document.documentElement;
@@ -247,7 +269,7 @@
     if (plausible(bodyColor) && bodyColor !== '#ffffff') PALETTE.bg = bodyColor;
     PALETTE.dark = luminance(PALETTE.bg) < 0.45;
     PALETTE.fg = PALETTE.dark ? '#f3f4f6' : '#111827';
-    PALETTE.font = (getComputedStyle(document.body).fontFamily || 'system-ui').split('"').join('').split(',')[0];
+    PALETTE.font = pickPageFont();
     var btnList = document.querySelectorAll('button, .btn, a[class*="btn"]');
     for (var bi = 0; bi < btnList.length; bi++) {
       var b = btnList[bi];
@@ -610,7 +632,7 @@ var vpBound = false;
     var chipText = dark ? '#dbe2ec' : '#374151';
     var accentDark = shade(PALETTE.accent, 0.15);
     return [
-      ':host{all:initial;}',
+      ':host{all:initial;--pw-ad:1;}',
       '*{box-sizing:border-box;font-family:var(--pw-font),system-ui,sans-serif;}',
       '.fab{position:fixed;' + (CONFIG.position === 'left' ? 'left:20px' : 'right:20px') + ';bottom:20px;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;z-index:2147483000;',
       'background:linear-gradient(135deg,' + PALETTE.primary + ',' + PALETTE.accent + ');box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .32s cubic-bezier(.34,1.56,.64,1),box-shadow .4s ease,width .25s ease,height .25s ease;will-change:transform;padding:0;}',
@@ -708,7 +730,23 @@ var vpBound = false;
       '.flybar{position:absolute;top:8px;right:8px;z-index:2;}',
       '.flybar button{border:1px solid ' + (dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.12)') + ';background:' + (dark ? '#2b3242' : '#ffffff') + ';color:' + sub + ';border-radius:8px;padding:4px 8px;font-size:11.5px;cursor:pointer;}',
       '.fstack{padding:8px 12px;font-size:11px;line-height:1.35;color:' + sub + ';border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';background:' + hexA(PALETTE.primary, .04) + ';}'
-    ].join('\n');
+    ].join('\n') + fontAdaptCss();
+  }
+
+  // Адаптация текста к базовому шрифту страницы через --pw-ad (выставляется JS).
+  function fontAdaptCss() {
+    var ad = 'var(--pw-ad)';
+    return '\n' +
+      '.b .m{font-size:max(13px,calc(16px * ' + ad + '));}' +
+      '.head .t{font-size:max(13px,calc(16px * ' + ad + '));}' +
+      '.head .s,.chips .lbl{font-size:max(10px,calc(11.5px * ' + ad + '));}' +
+      '.chip,.quick button,.foot button,.fops button,.flybar button{font-size:max(10.5px,calc(12.5px * ' + ad + '));}' +
+      '.input input,.finput input{font-size:max(12px,calc(14px * ' + ad + '));}' +
+      '.tab{font-size:max(11px,calc(13px * ' + ad + '));}' +
+      '.teaser{font-size:max(11.5px,calc(13.5px * ' + ad + '));}' +
+      '.b .name{font-size:max(9px,calc(10.5px * ' + ad + '));}' +
+      '.stars .lbl{font-size:max(10px,calc(12px * ' + ad + '));}' +
+      '.fph .lbl{font-size:max(11px,calc(13px * ' + ad + '));}';
   }
 
   function markup() {
@@ -1514,6 +1552,7 @@ var vpBound = false;
   function applyPalette() {
     if (!host || !shadow) return;
     host.style.setProperty('--pw-font', JSON.stringify(PALETTE.font));
+    host.style.setProperty('--pw-ad', computeFontAdapt());
     paint();
     host.setAttribute('data-theme-anim', '');
     clearTimeout(host._animT);
@@ -1562,6 +1601,7 @@ var vpBound = false;
     shadow = host.attachShadow({ mode: 'open' });
     shadow.innerHTML = '<style>' + cssText() + '</style>' + markup();
     host.style.setProperty('--pw-font', JSON.stringify(PALETTE.font));
+    host.style.setProperty('--pw-ad', computeFontAdapt());
     applyOperators();
     applyFly();
     wire();
