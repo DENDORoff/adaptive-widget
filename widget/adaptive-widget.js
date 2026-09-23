@@ -1215,6 +1215,24 @@ var vpBound = false;
     } catch (e) {}
   }
 
+  // Применяет предустановки внешнего вида из /api/flags (если авто-адаптация выключена).
+  function applyStyleFromFlags(d) {
+    if (!d || typeof d !== 'object') return;
+    var changed = false;
+    if (d.autoAdaptStyle === false) {
+      if (typeof d.primary === 'string' && d.primary && d.primary !== PALETTE.primary) { PALETTE.primary = d.primary; changed = true; }
+      if (typeof d.accent === 'string' && d.accent && d.accent !== PALETTE.accent) { PALETTE.accent = d.accent; changed = true; }
+      if (typeof d.bg === 'string' && d.bg && d.bg !== PALETTE.bg) {
+        PALETTE.bg = d.bg;
+        PALETTE.dark = luminance(PALETTE.bg) < 0.45;
+        PALETTE.fg = PALETTE.dark ? '#f3f4f6' : '#111827';
+        changed = true;
+      }
+    }
+    if (d.autoAdaptFont === false && typeof d.font === 'string' && d.font && d.font !== PALETTE.font) { PALETTE.font = d.font; changed = true; }
+    if (changed && host && shadow) applyPalette();
+  }
+
   // Сервер поддержки — источник истины для настроек. Локальный кэш используется
   // только как офлайн-фолбэк, когда сервер недоступен.
   function syncFlags() {
@@ -1227,6 +1245,7 @@ var vpBound = false;
       if (d.operatorsEnabled !== undefined) CONFIG.operatorsEnabled = !!d.operatorsEnabled;
       if (d.flyEnabled !== undefined) CONFIG.flyEnabled = !!d.flyEnabled;
       if (d.askEmail !== undefined) CONFIG.askEmail = d.askEmail === true ? 'optional' : false;
+      applyStyleFromFlags(d);
       applyOperators();
       applyFly();
       try { LS.set('pw_cfg', JSON.stringify({ operatorsEnabled: !!CONFIG.operatorsEnabled, flyEnabled: !!CONFIG.flyEnabled })); } catch (e) {}

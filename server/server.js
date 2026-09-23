@@ -44,7 +44,13 @@ function loadConfig() {
     siteToken: process.env.AW_SITE_TOKEN || '',
     siteName: process.env.AW_SITE_NAME || '',
     hidePopular: false,
-    hiddenPopular: []
+    hiddenPopular: [],
+    autoAdaptStyle: true,
+    autoAdaptFont: true,
+    presetPrimary: '',
+    presetAccent: '',
+    presetBg: '',
+    presetFont: ''
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -242,6 +248,12 @@ function publicConfig() {
     smtp: (CFG.smtp && CFG.smtp.host) ? { on: true, host: CFG.smtp.host, port: CFG.smtp.port || 465, secure: CFG.smtp.secure !== false, user: CFG.smtp.user || '' } : { on: false },
     hidePopular: !!CFG.hidePopular,
     hiddenPopular: Array.isArray(CFG.hiddenPopular) ? CFG.hiddenPopular.slice(0, 100) : [],
+    autoAdaptStyle: CFG.autoAdaptStyle !== false,
+    autoAdaptFont: CFG.autoAdaptFont !== false,
+    presetPrimary: CFG.presetPrimary || '',
+    presetAccent: CFG.presetAccent || '',
+    presetBg: CFG.presetBg || '',
+    presetFont: CFG.presetFont || '',
     discord: {
       on: !!CFG.discordWebhook,
       webhook: CFG.discordWebhook ? String(CFG.discordWebhook).replace(/\/[^/]{6,}$/, '/…') : '',
@@ -403,7 +415,13 @@ async function handle(req, res) {
       operatorsEnabled: !!CFG.operatorsEnabled,
       flyEnabled: !!CFG.flyEnabled,
       askEmail: CFG.askEmail === true,
-      aiEnabled: CFG.aiEnabled !== false
+      aiEnabled: CFG.aiEnabled !== false,
+      autoAdaptStyle: CFG.autoAdaptStyle !== false,
+      autoAdaptFont: CFG.autoAdaptFont !== false,
+      primary: CFG.presetPrimary || '',
+      accent: CFG.presetAccent || '',
+      bg: CFG.presetBg || '',
+      font: CFG.presetFont || ''
     });
   }
 
@@ -579,6 +597,12 @@ async function handle(req, res) {
       CFG.hiddenPopular = body.hiddenPopular.map((x) => String(x).trim().slice(0, 120)).filter(Boolean).slice(0, 100);
     }
     if (typeof body.flyBase === 'string' && body.flyBase.trim()) CFG.flyBase = body.flyBase.trim();
+    if (body.autoAdaptStyle !== undefined) CFG.autoAdaptStyle = !!body.autoAdaptStyle;
+    if (body.autoAdaptFont !== undefined) CFG.autoAdaptFont = !!body.autoAdaptFont;
+    if (typeof body.presetPrimary === 'string') CFG.presetPrimary = body.presetPrimary.trim().slice(0, 40);
+    if (typeof body.presetAccent === 'string') CFG.presetAccent = body.presetAccent.trim().slice(0, 40);
+    if (typeof body.presetBg === 'string') CFG.presetBg = body.presetBg.trim().slice(0, 40);
+    if (typeof body.presetFont === 'string') CFG.presetFont = body.presetFont.trim().slice(0, 120);
     discord.configure(CFG);
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();

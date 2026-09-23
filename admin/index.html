@@ -415,6 +415,50 @@
       </div>
 
       <fieldset>
+        <legend>Внешний вид виджета</legend>
+        <label><input type="checkbox" id="cfg_auto_style" style="width:auto;margin-right:6px"> Авто-подбор цветов из стилей сайта</label>
+        <label><input type="checkbox" id="cfg_auto_font" style="width:auto;margin-right:6px"> Авто-подбор шрифта из стилей сайта (адаптация под размер)</label>
+        <p class="hint">Выключите авто-подбор, чтобы виджет использовал цвета и шрифт из предустановки ниже (передаются на сайт через /api/flags).</p>
+        <div class="row">
+          <div>
+            <label>Предустановка цветов</label>
+            <select id="cfg_preset">
+              <option value="">— не применять предустановку —</option>
+              <option value="blue">Синяя</option>
+              <option value="emerald">Изумрудная</option>
+              <option value="purple">Фиолетовая</option>
+              <option value="orange">Оранжевая</option>
+              <option value="dark">Тёмная</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div><label>Основной цвет</label><input id="cfg_color_p" type="color" value="#2563eb"></div>
+          <div><label>Акцент</label><input id="cfg_color_a" type="color" value="#312e81"></div>
+          <div><label>Фон</label><input id="cfg_color_bg" type="color" value="#ffffff"></div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Шрифт</label>
+            <select id="cfg_font_pick">
+              <option value="">— шрифт сайта —</option>
+              <option value="Arial">Arial</option>
+              <option value="Segoe UI">Segoe UI</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Inter">Inter</option>
+              <option value="PT Sans">PT Sans</option>
+            </select>
+          </div>
+          <div><label>Либо свой шрифт</label><input id="cfg_font_manual" placeholder="Arial, sans-serif"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>Уведомления по email (SMTP)</legend>
         <label>Статус: <span id="smtp_status" class="smtp-status off"><span class="dot"></span>загрузка...</span></label>
         <div class="row">
@@ -973,6 +1017,14 @@
       $('#cfg_operators').checked = c.operatorsEnabled !== false;
       $('#cfg_fly').checked = c.flyEnabled !== false;
       applyOperatorsUI();
+      $('#cfg_auto_style').checked = c.autoAdaptStyle !== false;
+      $('#cfg_auto_font').checked = c.autoAdaptFont !== false;
+      $('#cfg_color_p').value = c.presetPrimary || '#2563eb';
+      $('#cfg_color_a').value = c.presetAccent || '#312e81';
+      $('#cfg_color_bg').value = c.presetBg || '#ffffff';
+      $('#cfg_font_manual').value = c.presetFont || '';
+      $('#cfg_font_pick').value = '';
+      $('#cfg_preset').value = '';
       $('#cfg_instr').value = c.instructions || '';
       $('#cfg_qa').value = (c.qa || []).map((x) => [x.q, x.a, (x.keys || []).join(',')].filter(Boolean).join(' || ')).join('\n');
       $('#cfg_qathr').value = (typeof c.qaThreshold === 'number' ? c.qaThreshold : 0.45).toFixed(2);
@@ -1003,6 +1055,25 @@
     if (r) r.style.display = on ? '' : 'none';
   }
 
+  const AW_PRESETS = {
+    blue: ['#2563eb', '#312e81', '#ffffff'],
+    emerald: ['#059669', '#064e3b', '#ffffff'],
+    purple: ['#7c3aed', '#4c1d95', '#ffffff'],
+    orange: ['#ea580c', '#7c2d12', '#ffffff'],
+    dark: ['#60a5fa', '#1e3a8a', '#0f172a']
+  };
+  $('#cfg_preset').addEventListener('change', () => {
+    const k = $('#cfg_preset').value;
+    if (!AW_PRESETS[k]) return;
+    $('#cfg_color_p').value = AW_PRESETS[k][0];
+    $('#cfg_color_a').value = AW_PRESETS[k][1];
+    $('#cfg_color_bg').value = AW_PRESETS[k][2];
+  });
+  $('#cfg_font_pick').addEventListener('change', () => {
+    const v = $('#cfg_font_pick').value;
+    if (v) $('#cfg_font_manual').value = v;
+  });
+
   $('#btn_savecfg').addEventListener('click', async () => {
     const body = {
       provider: $('#cfg_provider').value,
@@ -1014,7 +1085,13 @@
       askEmail: $('#cfg_askemail').checked,
       operatorsEnabled: $('#cfg_operators').checked,
       flyEnabled: $('#cfg_fly').checked,
-      ticketTtlDays: parseInt($('#cfg_ttl').value, 10) || 0
+      ticketTtlDays: parseInt($('#cfg_ttl').value, 10) || 0,
+      autoAdaptStyle: $('#cfg_auto_style').checked,
+      autoAdaptFont: $('#cfg_auto_font').checked,
+      presetPrimary: $('#cfg_color_p').value.trim(),
+      presetAccent: $('#cfg_color_a').value.trim(),
+      presetBg: $('#cfg_color_bg').value.trim(),
+      presetFont: $('#cfg_font_manual').value.trim()
     };
     const k = $('#cfg_apikey').value.trim();
     if (k) body.apiKey = k;
@@ -1304,20 +1381,28 @@
 (function () {
   var soon = function (fn) { (window.requestAnimationFrame || function (f) { setTimeout(f, 16); })(fn); };
 
-  // Плавный счётчик цифр в карточках статистики.
+  // Плавный счётчик цифр в карточках статистики (защищён от само-перезапуска через MutationObserver).
   function animateNum(el, to) {
+    if (el.getAttribute('data-aw-anim')) return;
     var from = parseFloat(el.getAttribute('data-val') || '0');
-    if (isNaN(from) || isNaN(to) || el.textContent.indexOf('%') > -1 || String(to) === String(from)) {
-      el.removeAttribute('data-val');
-      return;
-    }
+    if (isNaN(from) || isNaN(to)) { el.setAttribute('data-val', String(to)); return; }
+    if (Math.round(from) === Math.round(to)) { el.setAttribute('data-val', String(to)); el.textContent = to; return; }
+    el.setAttribute('data-aw-anim', '1');
     var start = null, dur = 550;
     function step(ts) {
       if (!start) start = ts;
       var p = Math.min(1, (ts - start) / dur);
       var eased = 1 - Math.pow(1 - p, 3);
       el.textContent = Math.round(from + (to - from) * eased);
-      if (p < 1) soon(step); else { el.textContent = to; el.style.transform = 'scale(1.08)'; soon(function () { el.style.transform = ''; }); }
+      if (p < 1) {
+        soon(step);
+      } else {
+        el.textContent = to;
+        el.setAttribute('data-val', String(to));
+        el.removeAttribute('data-aw-anim');
+        el.style.transform = 'scale(1.08)';
+        soon(function () { el.style.transform = ''; });
+      }
     }
     soon(step);
   }
@@ -1327,8 +1412,10 @@
       cards.setAttribute('data-aw-hooked', '1');
       new MutationObserver(function () {
         Array.prototype.forEach.call(cards.querySelectorAll('.num'), function (el) {
-          var t = parseFloat((el.textContent || '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'));
-          if (!isNaN(t)) { animateNum(el, t); el.setAttribute('data-val', String(t)); }
+          var clean = String(el.textContent || '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.');
+          if (!/^-?\d+(\.\d+)?$/.test(clean)) return;
+          var t = parseFloat(clean);
+          if (!isNaN(t)) animateNum(el, t);
         });
       }).observe(cards, { childList: true, subtree: true, characterData: true });
     });
