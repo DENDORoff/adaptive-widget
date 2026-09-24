@@ -429,6 +429,11 @@ async function handle(req, res) {
     if (!adminGuard(req, res)) return;
     const list = Object.keys(store.getChats()).map((id) => chip(store.getChat(id)));
     list.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+    const total = list.length;
+    if (u.searchParams.has('limit')) {
+      const limit = Math.max(1, Math.min(500, parseInt(u.searchParams.get('limit'), 10) || 300));
+      return json(res, 200, { items: list.slice(0, limit), total });
+    }
     return json(res, 200, list);
   }
 

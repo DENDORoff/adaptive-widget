@@ -114,6 +114,10 @@
   .instr-item .txt { flex: 1; min-width: 0; }
   .instr-item .t { font-size: 13px; font-weight: 600; }
   .instr-item .s { font-size: 12px; color: var(--sub); word-break: break-word; white-space: pre-wrap; }
+  .pager { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 0; font-size: 12.5px; color: var(--sub); }
+  .pager button { background: rgba(124, 58, 237, .12); color: var(--ink); border: 1px solid rgba(124, 58, 237, .35); border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 12.5px; }
+  .pager button:hover:not(:disabled) { background: rgba(124, 58, 237, .22); }
+  .pager button:disabled { opacity: .35; cursor: default; }
   .meta-line { font-size: 11px; color: var(--sub); }
   .smtp-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 100px; }
   .smtp-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sub); }
@@ -632,6 +636,11 @@
   let lastDetailSig = '';
   let lastListSig = '';
   let lastStatsSig = '';
+  const CHAT_PAGE = 60;
+  let listPage = 1;
+  let kbLimit = 50;
+  let secLimit = 100;
+  let showAllMsgs = false;
 
   const SMTP_PRESETS = {
     yandex: { host: 'smtp.yandex.ru', port: 465, secure: true },
@@ -654,6 +663,7 @@
 
   window.setFilter = function (f) {
     filter = f;
+    listPage = 1;
     document.querySelectorAll('#filters button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-f') === f));
     renderList();
   };
@@ -684,10 +694,12 @@
   async function refreshList() {
     if (document.hidden || !$('#view-chats').classList.contains('on')) return;
     try {
-      const data = await api('/api/chats');
-      const sig = data.reduce((s, c) => s + c.id + ':' + c.status + ':' + (c.updatedAt || '') + ':' + (c.unread || 0) + ':', '');
-      chats = data;
-      markOnline();
+      const data = await api('/api/chats?limit=300');
+      const items = (data && Array.isArray(data)) ? data : ((data && data.items) || []);
+      const total = (data && typeof data.total === 'number') ? data.total : items.length;
+      const sig = items.reduce((s, c) => s + c.id + ':' + c.status + ':' + (c.updatedAt || '') + ':' + (c.unread || 0) + ':', '');
+      chats = items;
+      markOnline(total);
       if (sig === lastListSig) return;
       lastListSig = sig;
       renderList();
@@ -696,10 +708,10 @@
     }
   }
 
-  function markOnline() {
+  function markOnline(total) {
     $('#conn').classList.remove('err');
     $('#conn').classList.add('ok');
-    $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов · ' + new Date().toLocaleTimeString('ru-RU');
+    $('#conn').textContent = 'онлайн · ' + (total || chats.length) + ' чатов · ' + new Date().toLocaleTimeString('ru-RU');
     $('#conn_dot').className = 'dot ok';
     $('#apibanner').style.display = 'none';
   }
@@ -752,7 +764,12 @@
     const list = $('#list');
     const filtered = chats.filter(chatMatches);
     if (!filtered.length) { list.innerHTML = '<div class="empty">Нет чатов по фильтру «' + filter + '»</div>'; return; }
-    list.innerHTML = filtered.map((c) => {
+    const pages = Math.max(1, Math.ceil(filtered.length / CHAT_PAGE));
+    if (listPage > pages) listPage = pages;
+    if (listPage < 1) listPage = 1;
+    const start = (listPage - 1) * CHAT_PAGE;
+    const slice = filtered.slice(start, start + CHAT_PAGE);
+    let html = slice.map((c) => {
       const d = new Date(c.updatedAt).toLocaleString('ru-RU');
       const pills = [];
       if ((c.unresolvedCount || 0) > 0) pills.push('<span class="pill err">нерешённое: ' + c.unresolvedCount + '</span>');
@@ -763,10 +780,22 @@
         '<div class="last">' + esc(c.lastText || '…') + ' · ' + esc(d) + '</div>' +
       '</div>';
     }).join('');
+    html += '<div class="pager">' +
+      '<button onclick="goListPage(' + (listPage - 1) + ')"' + (listPage <= 1 ? ' disabled' : '') + '>← Назад</button>' +
+      '<span>' + listPage + ' / ' + pages + ' · всего ' + filtered.length + '</span>' +
+      '<button onclick="goListPage(' + (listPage + 1) + ')"' + (listPage >= pages ? ' disabled' : '') + '>Вперёд →</button>' +
+      '</div>';
+    list.innerHTML = html;
     list.querySelectorAll('.chat-card').forEach((el) => {
       el.addEventListener('click', () => openChat(el.getAttribute('data-id')));
     });
   }
+
+  window.goListPage = function (p) {
+    if (p < 1) return;
+    listPage = p;
+    renderList();
+  };
 
   window.openChat = async function (id) {
     if ($('#view-chats').classList.contains('on') === false) showTab('chats');
@@ -788,6 +817,7 @@
 
   async function loadDetail(soft) {
     if (!currentId) return;
+    if (!soft) showAllMsgs = false;
     try {
       const c = await api('/api/chat/' + currentId + '/full');
       if (soft && detailSig(c) === lastDetailSig) { current = c; return; }
@@ -812,12 +842,20 @@
     const initials = { user: 'К', bot: 'ИИ', agent: 'О', system: '·' };
     const msgs = c.messages || [];
     const prev = soft ? lastMsgCount : 0;
-    $('#d_msgs').innerHTML = msgs.map((m, i) =>
+    const all = msgs.map((m, i) =>
       '<div class="msg ' + esc(m.role) + (i >= prev ? ' new' : '') + '">' +
         '<div class="ava">' + esc(initials[m.role] || '?') + '</div>' +
         '<div class="bub"><span class="meta">' + esc(names[m.role] || m.role) + ' · ' + esc(new Date(m.ts).toLocaleTimeString('ru-RU')) + '</span>' + esc(m.text) + '</div>' +
       '</div>'
-    ).join('') || '<div class="hint" style="text-align:center">Сообщений пока нет</div>';
+    );
+    const MSG_CAP = 300;
+    let body;
+    if (msgs.length > MSG_CAP && !showAllMsgs) {
+      body = '<div class="hint" style="text-align:center;padding:8px">Показаны последние ' + MSG_CAP + ' из ' + msgs.length + '. <a href="#" onclick="showAllMsgsFn();return false">Показать все</a></div>' + all.slice(-MSG_CAP).join('');
+    } else {
+      body = all.join('');
+    }
+    $('#d_msgs').innerHTML = body || '<div class="hint" style="text-align:center">Сообщений пока нет</div>';
     if (!soft || wasAtBottom) $('#d_msgs').scrollTop = $('#d_msgs').scrollHeight;
     lastMsgCount = msgs.length;
     if (!soft) {
@@ -829,6 +867,11 @@
 
   $('#btn_reply').addEventListener('click', sendReply);
   $('#d_reply').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendReply(); });
+
+  window.showAllMsgsFn = function () {
+    showAllMsgs = true;
+    renderDetail(false, true);
+  };
 
   async function sendReply() {
     const text = $('#d_reply').value.trim();
@@ -953,13 +996,17 @@
   function renderKb() {
     const box = $('#kb_list');
     if (!kbItems.length) { box.innerHTML = '<div class="hint">Инструкций пока нет: сохраните инструкции в любом чате или добавьте вручную выше.</div>'; return; }
-    box.innerHTML = kbItems.map((i) =>
+    const shown = kbItems.length > kbLimit ? kbItems.slice(0, kbLimit) : kbItems;
+    box.innerHTML = shown.map((i) =>
       '<div class="instr-item">' +
         '<div class="txt"><div class="t">' + esc(i.title) + '</div><div class="s">' + esc(i.text) + '</div>' +
         '<div class="meta-line">' + esc(i.site || 'все сайты') + ' · ' + (i.source === 'chat' ? 'из чата' : 'вручную') + ' · ' + esc(new Date(i.ts).toLocaleString('ru-RU')) + '</div></div>' +
         '<button class="danger" data-del="' + esc(i.id) + '">Удалить</button>' +
       '</div>'
     ).join('');
+    if (kbItems.length > kbLimit) {
+      box.innerHTML += '<div class="pager"><button onclick="kbShowAll()">Показать все (' + kbItems.length + ')</button></div>';
+    }
     box.querySelectorAll('[data-del]').forEach((b) => {
       b.addEventListener('click', async () => {
         await api('/api/instructions?id=' + encodeURIComponent(b.getAttribute('data-del')), { method: 'DELETE' });
@@ -968,6 +1015,11 @@
       });
     });
   }
+
+  window.kbShowAll = function () {
+    kbLimit = 1e9;
+    renderKb();
+  };
 
   $('#btn_kb_add').addEventListener('click', async () => {
     const title = $('#kb_title').value.trim();
@@ -1165,12 +1217,14 @@
       $('#sv_sections').textContent = ov.sections.total;
       $('#sv_visits').textContent = ov.visits ? ov.visits.total : '–';
       const vis = ov.online.users || [];
-      $('#sv_visitors').innerHTML = vis.length
-        ? vis.map((u) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(u.page || '—') + '</div><div class="s">' + esc(u.ip || '') + ' · ' + fmtTs(u.ts) + '</div></div></div>').join('')
+      const visCap = vis.slice(0, 40);
+      $('#sv_visitors').innerHTML = visCap.length
+        ? visCap.map((u) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(u.page || '—') + '</div><div class="s">' + esc(u.ip || '') + ' · ' + fmtTs(u.ts) + '</div></div></div>').join('') + (vis.length > 40 ? '<div class="pager"><span>и ещё ' + (vis.length - 40) + ' визитёров</span></div>' : '')
         : '<div class="hint">Нет активных визитёров прямо сейчас</div>';
       const we = wing.chats || [];
-      $('#sv_wchats').innerHTML = we.length
-        ? we.map((c) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(c.siteName || 'Чат') + '</div><div class="s">' + esc(String(c.page || '').slice(0, 80)) + ' · ' + esc(new Date(c.updatedAt).toLocaleTimeString('ru-RU')) + '</div></div></div>').join('')
+      const weCap = we.slice(0, 40);
+      $('#sv_wchats').innerHTML = weCap.length
+        ? weCap.map((c) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(c.siteName || 'Чат') + '</div><div class="s">' + esc(String(c.page || '').slice(0, 80)) + ' · ' + esc(new Date(c.updatedAt).toLocaleTimeString('ru-RU')) + '</div></div></div>').join('') + (we.length > 40 ? '<div class="pager"><span>и ещё ' + (we.length - 40) + ' диалогов</span></div>' : '')
         : '<div class="hint">Нет активных диалогов виджета</div>';
     } catch (e) { toast('Сайт: ' + (e && e.message)); }
   }
@@ -1189,9 +1243,15 @@
       const box = $('#sv_sectlist');
       if (!Object.keys(groups).length) { box.innerHTML = '<div class="hint">Разделы не найдены</div>'; return; }
       let html = '';
+      let rendered = 0;
+      let totalSec = 0;
+      Object.keys(groups).forEach((pg) => { totalSec += groups[pg].length; });
       Object.keys(groups).forEach((pg) => {
+        if (rendered >= secLimit) return;
         html += '<div class="databox"><h4>' + esc(pg) + ' <span class="tag">' + groups[pg].length + '</span></h4>';
         groups[pg].forEach((s) => {
+          if (rendered >= secLimit) return;
+          rendered++;
           html += '<div class="instr-item"><div class="txt"><div class="t">' + esc(s.section_key) + ' <span class="tag">' + esc(s.title || '') + '</span></div>' +
             '<div class="s">' + (s.is_active ? '<span class="ok">активен</span>' : '<span class="err">выключен</span>') +
             ' · порядок ' + (s.sort_order || 0) + ' · ' + esc(s.updated_at || '') + '</div></div>' +
@@ -1199,11 +1259,19 @@
         });
         html += '</div>';
       });
+      if (totalSec > secLimit) {
+        html += '<div class="pager">Показаны первые ' + secLimit + ' из ' + totalSec + ' разделов · <button onclick="secShowMore()">Показать ещё ' + Math.min(100, totalSec - secLimit) + '</button></div>';
+      }
       box.innerHTML = html;
     } catch (e) { toast('Разделы: ' + (e && e.message)); }
   }
 
-  $('#sv_page').addEventListener('change', () => { siteState.pages = null; loadSections(); });
+  window.secShowMore = function () {
+    secLimit += 100;
+    loadSections();
+  };
+
+  $('#sv_page').addEventListener('change', () => { siteState.pages = null; secLimit = 100; loadSections(); });
 
   window.editSection = async function (id) {
     try {
