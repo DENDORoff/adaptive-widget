@@ -179,9 +179,12 @@ function pruneTickets(forceNow) {
 
 const FALLBACK_TEXT = 'Не нашёл точного ответа по данным этого сайта. Переформулируйте вопрос или напишите в поддержку: ';
 
+let statsCache = { at: 0, data: null };
+
 function computeStats() {
-  const chats = store.getChats();
   const nowMs = Date.now();
+  if (statsCache.data && nowMs - statsCache.at < 2000) return statsCache.data;
+  const chats = store.getChats();
   const activeWindow = 60 * 1000;
   let onlineUsers = 0, activeChats = 0, answers = 0, unresolved = 0, ratedCount = 0, ratingSum = 0;
   const sites = new Set();
@@ -212,7 +215,7 @@ function computeStats() {
   const popular = Object.keys(popularMap).map((k) => popularMap[k]).sort((a, b) => b.count - a.count).slice(0, 10)
     .map((p) => Object.assign({}, p, { hidden: isHiddenQ(p.q) }));
   unresolvedList.reverse();
-  return {
+  const result = {
     generatedAt: now(),
     totalSites: sites.size,
     totalChats: Object.keys(chats).length,
@@ -228,6 +231,8 @@ function computeStats() {
     ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions, qaCount: (CFG.qa || []).length, qaThreshold: CFG.qaThreshold, agentMode: CFG.agentMode },
     cache: { size: Object.keys(CACHE.entries).length, hits: CACHE.hits }
   };
+  statsCache = { at: nowMs, data: result };
+  return result;
 }
 
 function publicConfig() {
@@ -430,6 +435,12 @@ async function handle(req, res) {
     const list = Object.keys(store.getChats()).map((id) => chip(store.getChat(id)));
     list.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
     const total = list.length;
+    if (u.searchParams.has('page')) {
+      const per = Math.max(10, Math.min(200, parseInt(u.searchParams.get('per'), 10) || 60));
+      const page = Math.max(1, parseInt(u.searchParams.get('page'), 10) || 1);
+      const start = (page - 1) * per;
+      return json(res, 200, { items: list.slice(start, start + per), total, page, per });
+    }
     if (u.searchParams.has('limit')) {
       const limit = Math.max(1, Math.min(500, parseInt(u.searchParams.get('limit'), 10) || 300));
       return json(res, 200, { items: list.slice(0, limit), total });
